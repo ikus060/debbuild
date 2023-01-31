@@ -44,3 +44,23 @@ class TestDebbuild(unittest.TestCase):
         expected_output = os.path.join(tmp, "mypackage_1.0.1_all.deb")
         self.assertTrue(os.path.isfile(expected_output))
         os.remove(expected_output)
+
+    def test_debbuild_with_symlink_as_string(self):
+        # Given a build with output
+        debbuild(
+            name='mypackage',
+            version='1.0.1',
+            data_src=self.dir,
+            data_prefix='/opt/mypackage',
+            symlink=["/usr/bin/mypackage=/opt/mypackage/coucou"],
+        )
+
+    def test_debbuild_with_symlink_as_tuple(self):
+        # Given a build with output
+        debbuild(
+            name='mypackage',
+            version='1.0.1',
+            data_src=self.dir,
+            data_prefix='/opt/mypackage',
+            symlink=[("/usr/bin/mypackage", "/opt/mypackage/coucou")],
+        )

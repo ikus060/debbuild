@@ -27,6 +27,7 @@ def main():
         url=cfg.url,
         maintainer=cfg.maintainer,
         output=cfg.output,
+        symlink=cfg.symlink,
     )
 
 

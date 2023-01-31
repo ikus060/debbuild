@@ -179,6 +179,13 @@ def _config():
         type=str,
         default=DEFAULT_DISTRIBUTION,
     )
+    parser.add_argument(
+        "--symlink",
+        "--link",
+        help="Define a symlink to be created as `<source>=<target>` e.g.: `--symlink /opt/mypackage/bin/mypackage=/usr/bin/mypackage`",
+        type=str,
+        action='append',
+    )
 
     return parser.parse_args()
 
@@ -258,10 +265,34 @@ def _write_changelog(name, **kwargs):
     """
     Create a changelog.gz
     """
-    filename = f"staging/usr/share/doc/{name}/changelog.gz"
+    filename = os.path.join(STAGING_DIR, f"usr/share/doc/{name}/changelog.gz")
     os.makedirs(os.path.dirname(filename))
     with gzip.open(filename, "w") as f:
         f.write(_template(TMPL_CHANGELOG, name=name, **kwargs).encode("utf-8"))
+
+
+def _write_symlink(symlink, **kwargs):
+    """
+    Create the symlink in staging folder.
+    """
+    if not symlink:
+        return
+    # Loop on symlink
+    for item in symlink:
+        # Item could be a tuple with source and dest or a string to be split.
+        try:
+            try:
+                src, dst = item
+            except ValueError:
+                src, dst = item.partition('=')[0::2]
+        except ValueError:
+            raise DebBuildException('expect symlink to be define as <source>=<target>')
+        # Make the path relative
+        dst = os.path.join(STAGING_DIR, dst.strip('/'))
+        # Create missing directories
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        # Finally create the symlink.
+        os.symlink(src, dst)
 
 
 def _walk(data_src, data_prefix, **kwargs):
@@ -315,6 +346,8 @@ def _archive_deb(**kwargs):
 
     # Generate change log
     _write_changelog(**kwargs)
+    # Generate symlinks
+    _write_symlink(**kwargs)
 
     # control.tar
     _control_tar(**kwargs)
@@ -348,6 +381,7 @@ def debbuild(
     url=None,
     maintainer=DEFAULT_MAINTAINER,
     output=None,
+    symlink=None,
 ):
     if source_date is None:
         source_date = datetime.datetime.now(datetime.timezone.utc)
@@ -378,6 +412,7 @@ def debbuild(
             source_date=source_date,
             maintainer=maintainer,
             url=url,
+            symlink=symlink,
         )
         # Move the archive to output folder.
         shutil.move(filename, os.path.join(output, filename))
