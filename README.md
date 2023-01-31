@@ -13,7 +13,7 @@ Command line utility to build Deb package without Debian.
 
 This project allows to create archives for Debian (.deb) using only Python technologies. It is inspired by the [Fpm project](https://fpm.readthedocs.io/) which allows to create different types of archives on any platform.
 
-I decided to create the Debbuild project, because it is a better way to create a Debian package on any platform. In the past creating packages for Debian requires the creation of a `debian` directory, the creation of several configuration files and tools like `dpkg` to build the package. With Debbuild it is possible to build the package without Debian by using a single python script. This makes the creation of packages easier and the process simpler and more understandable.
+I decided to create the Debbuild project, because it is a better way to create a Debian package on any platform. Previsouly, creating packages for Debian required the creation of a `debian` directory, the creation of several configuration files and tools like `dpkg` to build the package. With Debbuild it is possible to build the package without Debian by using a python script. This makes the creation of packages easier and the process simpler and more understandable.
 
 A good usage scenario is the creation of a package containing the binary version of your project created from [PyInstaller](https://pyinstaller.org/en/stable/).
 
@@ -39,7 +39,10 @@ If you need help or experience problem while using Debuild, open a ticket in [Gi
 
 ## Roadmap
 
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+More specialized feature could be added:
+
+* Service Unit creation
+* Support more compression type like `zstd`
 
 ## License
 

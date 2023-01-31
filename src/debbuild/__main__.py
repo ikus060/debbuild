@@ -26,6 +26,7 @@ def main():
         distribution=cfg.distribution,
         url=cfg.url,
         maintainer=cfg.maintainer,
+        output=cfg.output,
     )
 
 

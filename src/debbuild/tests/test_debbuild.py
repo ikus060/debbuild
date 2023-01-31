@@ -16,13 +16,31 @@ from debbuild import debbuild
 
 class TestDebbuild(unittest.TestCase):
     def setUp(self) -> None:
+        # Create basic folder structure to be package for testing.
         self.dir = str(tempfile.mkdtemp(prefix='debbuild_test_'))
-
-    def tearDown(self) -> None:
-        shutil.rmtree(self.dir)
-
-    def test_debbuild(self):
         with open(os.path.join(self.dir, 'coucou'), 'w') as f:
             f.write('#!/bin/sh')
             f.write('echo coucou')
+
+    def tearDown(self) -> None:
+        # Remove the temporary folder.
+        shutil.rmtree(self.dir)
+
+    def test_debbuild(self):
+        # Given required parameter, debuild run without error.
         debbuild(name='mypackage', version='1.0.1', data_src=self.dir, data_prefix='/opt/mypackage')
+
+    def test_debbuild_with_relative_data_src(self):
+        # Given a relative data_src
+        data_src = self.dir
+        data_src = os.path.relpath(data_src, os.getcwd())
+        debbuild(name='mypackage', version='1.0.1', data_src=self.dir, data_prefix='/opt/mypackage')
+
+    def test_debbuild_with_output(self):
+        tmp = tempfile.gettempdir()
+        # Given a build with output
+        debbuild(name='mypackage', version='1.0.1', data_src=self.dir, data_prefix='/opt/mypackage', output=tmp)
+        # Then file is created in output
+        expected_output = os.path.join(tmp, "mypackage_1.0.1_all.deb")
+        self.assertTrue(os.path.isfile(expected_output))
+        os.remove(expected_output)

@@ -112,10 +112,14 @@ def _config():
         type=str,
         default=DEFAULT_MAINTAINER,
     )
-
+    parser.add_argument(
+        "--output",
+        help="Define the directory of the debian package. Default to current working directory",
+        type=str,
+    )
     parser.add_argument(
         "--deb",
-        help="The debian package to be generated. Default to `<name>_<version>_all.deb` (not required)",
+        help="The debian package to be generated. Default to `<name>_<version>_all.deb`.",
         default=DEFAULT_DEB,
         type=str,
     )
@@ -322,6 +326,8 @@ def _archive_deb(**kwargs):
 
     f.close()
 
+    return filename
+
 
 def debbuild(
     name,
@@ -341,16 +347,21 @@ def debbuild(
     source_date=None,
     url=None,
     maintainer=DEFAULT_MAINTAINER,
+    output=None,
 ):
     if source_date is None:
         source_date = datetime.datetime.now(datetime.timezone.utc)
     cwd = os.getcwd()
+    if output is None:
+        output = cwd
     try:
+        # To simplify the building process, let switch to staging folder.
         os.makedirs(build_dir, exist_ok=True)
         os.chdir(build_dir)
         if os.path.exists(STAGING_DIR):
             shutil.rmtree(STAGING_DIR)
-        _archive_deb(
+        # Create the debian archive
+        filename = _archive_deb(
             name=name,
             version=version,
             deb=deb,
@@ -368,5 +379,7 @@ def debbuild(
             maintainer=maintainer,
             url=url,
         )
+        # Move the archive to output folder.
+        os.rename(filename, os.path.join(output, filename))
     finally:
         os.chdir(cwd)
