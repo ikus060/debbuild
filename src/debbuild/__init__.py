@@ -348,7 +348,8 @@ def debbuild(
     try:
         os.makedirs(build_dir, exist_ok=True)
         os.chdir(build_dir)
-        shutil.rmtree(STAGING_DIR)
+        if os.path.exists(STAGING_DIR):
+            shutil.rmtree(STAGING_DIR)
         _archive_deb(
             name=name,
             version=version,
