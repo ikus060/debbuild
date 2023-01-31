@@ -10,11 +10,11 @@ import datetime
 import gzip
 import hashlib
 import os
+import shutil
 import tarfile
 
 import jinja2
 import unix_ar
-import shutil
 
 STAGING_DIR = "staging"
 

@@ -5,7 +5,7 @@
 # IKUS Software inc. PROPRIETARY/CONFIDENTIAL.
 # Use is subject to license terms.
 #
-from . import debbuild, _config
+from . import _config, debbuild
 
 
 def main():

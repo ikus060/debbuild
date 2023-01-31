@@ -47,9 +47,7 @@ bdist:py3:
 upload:sonar:
   stage: upload
   needs:
-    - linux
-    - macos
-    - win32
+    - py3
   image: sonarsource/sonar-scanner-cli
   variables:
     SONAR_PROJECT_BASE_DIR: "${CI_PROJECT_DIR}"
