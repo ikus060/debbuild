@@ -213,7 +213,10 @@ def _control_tar(build_dir, **kwargs):
     f = tarfile.open(filename, "w:gz", format=tarfile.GNU_FORMAT)
 
     # Write control script
-    f.add(_write_control(build_dir=build_dir, **kwargs), filter=_filter(mode=0o644))
+    f.add(_write_control(build_dir=build_dir, **kwargs), arcname="control", filter=_filter(mode=0o644))
+
+    # Write md5sum
+    f.add(_write_control_md5sums(build_dir=build_dir, **kwargs), arcname="md5sums", filter=_filter(mode=0o644))
 
     # Add post & pre scripts
     for script in ["preinst", "postinst", "prerm", "postrm"]:
@@ -264,6 +267,7 @@ def _write_control_md5sums(build_dir, **kwargs):
             f.write(md5_value)
             f.write("  ")
             f.write(target[2:])
+    return filename
 
 
 def _write_changelog(name, staging_dir, **kwargs):
@@ -349,7 +353,7 @@ def _archive_deb(**kwargs):
     filename = os.path.join(kwargs["build_dir"], _template(kwargs["deb"], **kwargs))
     f = unix_ar.open(filename, "w")
     # debian-binary
-    f.addfile(unix_ar.ArInfo(_debian_binary(**kwargs), gid=0, uid=0, perms=0o100644))
+    f.add(_debian_binary(**kwargs), unix_ar.ArInfo("debian-binary", gid=0, uid=0, perms=0o100644))
 
     # Generate change log
     _write_changelog(**kwargs)
@@ -357,11 +361,10 @@ def _archive_deb(**kwargs):
     _write_symlink(**kwargs)
 
     # control.tar.gz
-    f.addfile(unix_ar.ArInfo(_control_tar(**kwargs), gid=0, uid=0, perms=0o100644))
+    f.add(_control_tar(**kwargs), unix_ar.ArInfo("control.tar.gz", gid=0, uid=0, perms=0o100644))
 
     # data.tar.gz
-
-    f.addfile(unix_ar.ArInfo(_data_tar(**kwargs), gid=0, uid=0, perms=0o100644))
+    f.add(_data_tar(**kwargs), unix_ar.ArInfo("data.tar.gz", gid=0, uid=0, perms=0o100644))
 
     f.close()
 
