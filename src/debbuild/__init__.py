@@ -380,6 +380,6 @@ def debbuild(
             url=url,
         )
         # Move the archive to output folder.
-        os.rename(filename, os.path.join(output, filename))
+        shutil.move(filename, os.path.join(output, filename))
     finally:
         os.chdir(cwd)
