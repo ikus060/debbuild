@@ -213,10 +213,10 @@ def _control_tar(build_dir, **kwargs):
     f = tarfile.open(filename, "w:gz", format=tarfile.GNU_FORMAT)
 
     # Write control script
-    f.add(_write_control(build_dir=build_dir, **kwargs), arcname="control", filter=_filter(mode=0o644))
+    f.add(_write_control(build_dir=build_dir, **kwargs), arcname="./control", filter=_filter(mode=0o644))
 
     # Write md5sum
-    f.add(_write_control_md5sums(build_dir=build_dir, **kwargs), arcname="md5sums", filter=_filter(mode=0o644))
+    f.add(_write_control_md5sums(build_dir=build_dir, **kwargs), arcname="./md5sums", filter=_filter(mode=0o644))
 
     # Add post & pre scripts
     for script in ["preinst", "postinst", "prerm", "postrm"]:
