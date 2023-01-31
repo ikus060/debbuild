@@ -195,24 +195,25 @@ def _template(tmpl, **kwargs):
     return t.render(**kwargs)
 
 
-def _debian_binary(version="2.0"):
+def _debian_binary(build_dir, **kwargs):
     """
     debian-binary contains the version.
     """
-    with open("debian-binary", "w") as f:
-        f.write(version)
-        f.write("\n")
+    filename = os.path.join(build_dir, "debian-binary")
+    with open(filename, "w") as f:
+        f.write("2.0\n")
+    return filename
 
 
-def _control_tar(**kwargs):
+def _control_tar(build_dir, **kwargs):
     """
     Create control.tar.gz
     """
-    f = tarfile.open("control.tar.gz", "w:gz", format=tarfile.GNU_FORMAT)
+    filename = os.path.join(build_dir, "control.tar.gz")
+    f = tarfile.open(filename, "w:gz", format=tarfile.GNU_FORMAT)
 
     # Write control script
-    _write_control(**kwargs)
-    f.add("./control", filter=_filter(mode=0o644))
+    f.add(_write_control(build_dir=build_dir, **kwargs), filter=_filter(mode=0o644))
 
     # Add post & pre scripts
     for script in ["preinst", "postinst", "prerm", "postrm"]:
@@ -225,26 +226,30 @@ def _control_tar(**kwargs):
 
     # Close archive to flush data on disk.
     f.close()
+    return filename
 
 
-def _write_control(**kwargs):
+def _write_control(build_dir, **kwargs):
     """
     Create a control file from template.
     """
-    with open("control", "w") as c:
+    filename = os.path.join(build_dir, "control")
+    with open(filename, "w") as c:
         data = _template(TMPL_CONTROL, **kwargs)
         c.write(data)
         # Write required final newline
         if not data.endswith("\n"):
             c.write("\n")
+    return filename
 
 
-def _write_control_md5sums(**kwargs):
+def _write_control_md5sums(build_dir, **kwargs):
     """
     Generate md5sum for all files.
     """
+    filename = os.path.join(build_dir, "md5sums")
     first = True
-    with open("md5sums", "w") as f:
+    with open(filename, "w") as f:
         for path, target in _walk(**kwargs):
             if not os.path.isfile(path):
                 continue
@@ -261,17 +266,18 @@ def _write_control_md5sums(**kwargs):
             f.write(target[2:])
 
 
-def _write_changelog(name, **kwargs):
+def _write_changelog(name, staging_dir, **kwargs):
     """
     Create a changelog.gz
     """
-    filename = os.path.join(STAGING_DIR, f"usr/share/doc/{name}/changelog.gz")
+    filename = os.path.join(staging_dir, f"usr/share/doc/{name}/changelog.gz")
     os.makedirs(os.path.dirname(filename))
     with gzip.open(filename, "w") as f:
         f.write(_template(TMPL_CHANGELOG, name=name, **kwargs).encode("utf-8"))
+    return filename
 
 
-def _write_symlink(symlink, **kwargs):
+def _write_symlink(symlink, staging_dir, **kwargs):
     """
     Create the symlink in staging folder.
     """
@@ -288,14 +294,14 @@ def _write_symlink(symlink, **kwargs):
         except ValueError:
             raise DebBuildException('expect symlink to be define as <source>=<target>')
         # Make the path relative
-        dst = os.path.join(STAGING_DIR, dst.strip('/'))
+        dst = os.path.join(staging_dir, dst.strip('/'))
         # Create missing directories
         os.makedirs(os.path.dirname(dst), exist_ok=True)
         # Finally create the symlink.
         os.symlink(src, dst)
 
 
-def _walk(data_src, data_prefix, **kwargs):
+def _walk(data_src, data_prefix, staging_dir, **kwargs):
     """
     Used to walk trought the data directory by listing it's content recursively.
     """
@@ -319,43 +325,43 @@ def _walk(data_src, data_prefix, **kwargs):
             yield path, target
 
     # Loop on staging folder to include changelog and link.
-    for root, dirs, files in os.walk(STAGING_DIR, followlinks=False):
+    for root, dirs, files in os.walk(staging_dir, followlinks=False):
         for name in files + dirs:
             path = os.path.join(root, name)
-            target = os.path.join("." + root[len(STAGING_DIR) :], name)
+            target = os.path.join("." + root[len(staging_dir) :], name)
             yield path, target
 
 
-def _data_tar(**kwargs):
+def _data_tar(build_dir, **kwargs):
     """
     Create data.tar.gz
     """
     # Create archive.
-    with tarfile.open("data.tar.gz", "w:gz", format=tarfile.GNU_FORMAT) as f:
+    filename = os.path.join(build_dir, "data.tar.gz")
+    with tarfile.open(filename, "w:gz", format=tarfile.GNU_FORMAT) as f:
         for path, target in _walk(**kwargs):
             f.add(path, arcname=target, recursive=False, filter=_filter(mask=0o755))
+    return filename
 
 
 def _archive_deb(**kwargs):
 
-    filename = _template(kwargs["deb"], **kwargs)
+    filename = os.path.join(kwargs["build_dir"], _template(kwargs["deb"], **kwargs))
     f = unix_ar.open(filename, "w")
     # debian-binary
-    _debian_binary()
-    f.addfile(unix_ar.ArInfo("debian-binary", gid=0, uid=0, perms=0o100644))
+    f.addfile(unix_ar.ArInfo(_debian_binary(**kwargs), gid=0, uid=0, perms=0o100644))
 
     # Generate change log
     _write_changelog(**kwargs)
     # Generate symlinks
     _write_symlink(**kwargs)
 
-    # control.tar
-    _control_tar(**kwargs)
-    f.addfile(unix_ar.ArInfo("control.tar.gz", gid=0, uid=0, perms=0o100644))
+    # control.tar.gz
+    f.addfile(unix_ar.ArInfo(_control_tar(**kwargs), gid=0, uid=0, perms=0o100644))
 
-    # data.tar
-    _data_tar(**kwargs)
-    f.addfile(unix_ar.ArInfo("data.tar.gz", gid=0, uid=0, perms=0o100644))
+    # data.tar.gz
+
+    f.addfile(unix_ar.ArInfo(_data_tar(**kwargs), gid=0, uid=0, perms=0o100644))
 
     f.close()
 
@@ -385,36 +391,39 @@ def debbuild(
 ):
     if source_date is None:
         source_date = datetime.datetime.now(datetime.timezone.utc)
+
     cwd = os.getcwd()
     if output is None:
         output = cwd
-    try:
-        # To simplify the building process, let switch to staging folder.
-        os.makedirs(build_dir, exist_ok=True)
-        os.chdir(build_dir)
-        if os.path.exists(STAGING_DIR):
-            shutil.rmtree(STAGING_DIR)
-        # Create the debian archive
-        filename = _archive_deb(
-            name=name,
-            version=version,
-            deb=deb,
-            data_src=data_src,
-            description=description,
-            long_description=long_description,
-            data_prefix=data_prefix,
-            preinst=preinst,
-            postinst=postinst,
-            prerm=prerm,
-            postrm=postrm,
-            architecture=architecture,
-            distribution=distribution,
-            source_date=source_date,
-            maintainer=maintainer,
-            url=url,
-            symlink=symlink,
-        )
-        # Move the archive to output folder.
-        shutil.move(filename, os.path.join(output, filename))
-    finally:
-        os.chdir(cwd)
+    # To simplify the building process, let switch to staging folder.
+    os.makedirs(build_dir, exist_ok=True)
+
+    # Clear staging
+    staging_dir = os.path.join(build_dir, STAGING_DIR)
+    if os.path.exists(staging_dir):
+        shutil.rmtree(staging_dir)
+
+    # Create the debian archive
+    filename = _archive_deb(
+        build_dir=build_dir,
+        staging_dir=staging_dir,
+        name=name,
+        version=version,
+        deb=deb,
+        data_src=data_src,
+        description=description,
+        long_description=long_description,
+        data_prefix=data_prefix,
+        preinst=preinst,
+        postinst=postinst,
+        prerm=prerm,
+        postrm=postrm,
+        architecture=architecture,
+        distribution=distribution,
+        source_date=source_date,
+        maintainer=maintainer,
+        url=url,
+        symlink=symlink,
+    )
+    # Move the archive to output folder.
+    shutil.move(filename, os.path.join(output, os.path.basename(filename)))
