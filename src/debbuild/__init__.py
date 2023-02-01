@@ -208,6 +208,9 @@ def _as_tuple(value, error_message):
                     k, v = item.partition('=')[0::2]
             except ValueError:
                 raise DebBuildException(error_message)
+            # Raise an error if key or value is empty.
+            if not k or not v:
+                raise DebBuildException(error_message)
             yield k, v
 
 
@@ -323,7 +326,7 @@ def _walk(data_src, staging_dir, **kwargs):
     for prefix, data in _as_tuple(data_src, 'expect `data-src` to be define as <prefix>=<data>'):
 
         # Validate Path
-        if not os.path.isfile(data) and not os.path.isdir(data):
+        if not (os.path.isfile(data) or os.path.isdir(data)):
             raise DebBuildException("data-src path `%s` must be a file or directory" % data)
 
         # Make sure prefix start with dot (.)

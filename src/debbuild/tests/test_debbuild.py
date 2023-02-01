@@ -11,7 +11,7 @@ import shutil
 import tempfile
 import unittest
 
-from debbuild import debbuild
+from debbuild import DebBuildException, debbuild
 
 
 class TestDebbuild(unittest.TestCase):
@@ -68,3 +68,26 @@ class TestDebbuild(unittest.TestCase):
             data_src='/opt/mypackage=%s' % (self.dir),
             symlink=[("/usr/bin/mypackage", "/opt/mypackage/coucou")],
         )
+
+    def test_debbuild_with_empty_data_src(self):
+        # Given a symlink with empty value
+        # When creating the archive
+        # Then an error is raised
+        with self.assertRaises(DebBuildException):
+            debbuild(
+                name='mypackage',
+                version='1.0.1',
+                data_src='/opt/mypackage=',
+            )
+
+    def test_debbuild_with_empty_symlink(self):
+        # Given a symlink with empty value
+        # When creating the archive
+        # Then an error is raised
+        with self.assertRaises(DebBuildException):
+            debbuild(
+                name='mypackage',
+                version='1.0.1',
+                data_src='/opt/mypackage=%s' % (self.dir),
+                symlink=[("/usr/bin/mypackage", "")],
+            )
