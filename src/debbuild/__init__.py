@@ -11,6 +11,7 @@ import gzip
 import hashlib
 import os
 import shutil
+import stat
 import tarfile
 
 import jinja2
@@ -63,6 +64,10 @@ class DebBuildException(Exception):
 
 
 def _filter(mode=None, mask=None, uid=0, gui=0, uname="root", gname="root"):
+    """
+    Used to apply proper attribute to file archived.
+    """
+
     def _filter(tarinfo):
         if mode is not None:
             tarinfo.mode = mode
@@ -75,6 +80,28 @@ def _filter(mode=None, mask=None, uid=0, gui=0, uname="root", gname="root"):
         return tarinfo
 
     return _filter
+
+
+def _isfile(path):
+    """
+    Return True if ans only if the path is a file. Doesn't follow symlink.
+    """
+    try:
+        st = os.stat(path, follow_symlinks=False)
+    except (OSError, ValueError):
+        return False
+    return stat.S_ISREG(st.st_mode)
+
+
+def _isdir(path):
+    """
+    Return True if ans only if the path is a file. Doesn't follow symlink.
+    """
+    try:
+        st = os.stat(path, follow_symlinks=False)
+    except (OSError, ValueError):
+        return False
+    return stat.S_ISDIR(st.st_mode)
 
 
 def _config():
@@ -247,7 +274,7 @@ def _control_tar(build_dir, **kwargs):
         if not kwargs.get(script, None):
             continue
         path = kwargs[script]
-        if not os.path.isfile(path):
+        if not _isfile(path):
             raise DebBuildException("%s script `%s` must be a file" % (script, path))
         f.add(path, arcname="./" + script, filter=_filter(mode=0o755))
 
@@ -278,7 +305,7 @@ def _write_control_md5sums(build_dir, **kwargs):
     first = True
     with open(filename, "w") as f:
         for path, target in _walk(**kwargs):
-            if os.path.isfile(path):
+            if _isfile(path):
                 with open(path, "rb") as input:
                     md5_value = hashlib.md5(input.read()).hexdigest()
                 # Print newline between file only
@@ -326,7 +353,7 @@ def _walk(data_src, staging_dir, **kwargs):
     for prefix, data in _as_tuple(data_src, 'expect `data-src` to be define as <prefix>=<data>'):
 
         # Validate Path
-        if not (os.path.isfile(data) or os.path.isdir(data)):
+        if not (_isfile(data) or _isdir(data)):
             raise DebBuildException("data-src path `%s` must be a file or directory" % data)
 
         # Make sure prefix start with dot (.)
@@ -335,13 +362,13 @@ def _walk(data_src, staging_dir, **kwargs):
 
         # Yield intermediate directories
         for i in range(1, len(prefix.split("/"))):
-            path = data if os.path.isdir(data) else os.path.dirname(data)
+            path = data if _isdir(data) else os.path.dirname(data)
             target = "/".join(prefix.split("/")[0:i])
             yield path, target
         yield data, prefix
 
         # Loop on file and directory from data
-        if os.path.isdir(data):
+        if _isdir(data):
             for root, dirs, files in os.walk(data, followlinks=False):
                 for name in files + dirs:
                     path = os.path.join(root, name)
