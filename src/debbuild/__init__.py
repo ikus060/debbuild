@@ -41,9 +41,7 @@ Version: {{version}}
 Section: misc
 Priority: optional
 Architecture: {{architecture}}
-Depends:
-{% for d in depends %} {{ d }},
-{% endfor -%}
+Depends: {{ ', '.join(depends) }}
 Maintainer: {{maintainer}}
 Homepage: {{ url }}
 Description: {{ description|replace("\n", " ") }}
