@@ -330,9 +330,12 @@ def _walk(data_src, staging_dir, **kwargs):
         if not prefix.startswith("."):
             prefix = ("." if prefix.startswith("/") else "./") + prefix
 
-        # Yield prefix
-        for i in list(range(1, 1 + len(prefix.split("/")))):
-            yield data, "/".join(prefix.split("/")[0:i])
+        # Yield intermediate directories
+        for i in range(1, len(prefix.split("/"))):
+            path = data if os.path.isdir(data) else os.path.dirname(data)
+            target = "/".join(prefix.split("/")[0:i])
+            yield path, target
+        yield data, prefix
 
         # Loop on file and directory from data
         if os.path.isdir(data):
