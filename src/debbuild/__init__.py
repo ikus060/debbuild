@@ -43,11 +43,11 @@ Priority: optional
 Architecture: {{architecture}}
 Depends:
 Maintainer: {{maintainer}}
+Homepage: {{ url }}
 Description: {{ description|replace("\n", " ") }}
 {%- filter indent(width=1) %}
-{{ long_description }}
+{{ long_description | replace("\n", " ") | wordwrap(78) }}
 {% endfilter -%}
-Homepage: {{ url }}
 """
 
 TMPL_CHANGELOG = """{{name}} ({{version}}) {{distribution}}; urgency=medium
@@ -131,14 +131,9 @@ def _config():
     )
     parser.add_argument(
         "--data-src",
-        help="The directory to include in the package.",
+        help="The directory to include in the package. Must be define as <destination>=<path>. If you data is located in `./build/mypackage` and you want your application to be installed in `/opt/mypackage`, data should be defined as `--data /opt/mypackage=./build/mypackage`",
         required=True,
-        type=str,
-    )
-    parser.add_argument(
-        "--data-prefix",
-        help="Add this prefix to the files",
-        default=".",
+        action='append',
         type=str,
     )
     parser.add_argument(
@@ -183,11 +178,32 @@ def _config():
         "--symlink",
         "--link",
         help="Define a symlink to be created as `<source>=<target>` e.g.: `--symlink /opt/mypackage/bin/mypackage=/usr/bin/mypackage`",
-        type=str,
         action='append',
+        type=str,
     )
 
     return parser.parse_args()
+
+
+def _as_tuple(value, error_message):
+    """
+    Used to read --data-src and --symlink configuration that could be define as string, list of string or list of tuple.
+    """
+    if value:
+        # Support a single string value.
+        if isinstance(value, str):
+            value = [value]
+        # Loop on each data source
+        for item in value:
+            # Item could be a tuple with source and dest or a string to be split.
+            try:
+                try:
+                    k, v = item
+                except ValueError:
+                    k, v = item.partition('=')[0::2]
+            except ValueError:
+                raise DebBuildException(error_message)
+            yield k, v
 
 
 def _template(tmpl, **kwargs):
@@ -285,18 +301,8 @@ def _write_symlink(symlink, staging_dir, **kwargs):
     """
     Create the symlink in staging folder.
     """
-    if not symlink:
-        return
     # Loop on symlink
-    for item in symlink:
-        # Item could be a tuple with source and dest or a string to be split.
-        try:
-            try:
-                src, dst = item
-            except ValueError:
-                src, dst = item.partition('=')[0::2]
-        except ValueError:
-            raise DebBuildException('expect symlink to be define as <source>=<target>')
+    for src, dst in _as_tuple(symlink, 'expect symlink to be define as <source>=<target>'):
         # Make the path relative
         dst = os.path.join(staging_dir, dst.strip('/'))
         # Create missing directories
@@ -305,28 +311,31 @@ def _write_symlink(symlink, staging_dir, **kwargs):
         os.symlink(src, dst)
 
 
-def _walk(data_src, data_prefix, staging_dir, **kwargs):
+def _walk(data_src, staging_dir, **kwargs):
     """
     Used to walk trought the data directory by listing it's content recursively.
     """
-    # Validate Path
-    if not os.path.isdir(data_src):
-        raise DebBuildException("data-src path `%s` is not a directory")
+    # Loop on each data source
+    for prefix, data in _as_tuple(data_src, 'expect `data-src` to be define as <prefix>=<data>'):
 
-    # Make sure prefix start with dot (.)
-    if not data_prefix.startswith("."):
-        data_prefix = ("." if data_prefix.startswith("/") else "./") + data_prefix
+        # Validate Path
+        if not os.path.isdir(data):
+            raise DebBuildException("data-src path `%s` is not a directory" % data)
 
-    # Yield prefix
-    for i in list(range(1, 1 + len(data_prefix.split("/")))):
-        yield data_src, "/".join(data_prefix.split("/")[0:i])
+        # Make sure prefix start with dot (.)
+        if not prefix.startswith("."):
+            prefix = ("." if prefix.startswith("/") else "./") + prefix
 
-    # Loop on file and directory from data_src
-    for root, dirs, files in os.walk(data_src, followlinks=False):
-        for name in files + dirs:
-            path = os.path.join(root, name)
-            target = os.path.join(data_prefix + root[len(data_src) :], name)
-            yield path, target
+        # Yield prefix
+        for i in list(range(1, 1 + len(prefix.split("/")))):
+            yield data, "/".join(prefix.split("/")[0:i])
+
+        # Loop on file and directory from data
+        for root, dirs, files in os.walk(data, followlinks=False):
+            for name in files + dirs:
+                path = os.path.join(root, name)
+                target = os.path.join(prefix + root[len(data) :], name)
+                yield path, target
 
     # Loop on staging folder to include changelog and link.
     for root, dirs, files in os.walk(staging_dir, followlinks=False):
@@ -379,7 +388,6 @@ def debbuild(
     deb=DEFAULT_DEB,
     description="",
     long_description="",
-    data_prefix="",
     preinst=None,
     postinst=None,
     prerm=None,
@@ -416,7 +424,6 @@ def debbuild(
         data_src=data_src,
         description=description,
         long_description=long_description,
-        data_prefix=data_prefix,
         preinst=preinst,
         postinst=postinst,
         prerm=prerm,

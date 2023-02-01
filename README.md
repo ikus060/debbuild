@@ -30,7 +30,7 @@ pip install debbuild
 A simple example how to use Debbuild to quickly create a Debian package.
 
 ```sh
-debbuild --name mypackage --version 1.0.1 --data-src <path-to-dir> --data-prefix /opt/mypackage
+debbuild --name mypackage --version 1.0.1 --data-src /opt/mypackage=<path-to-dir>
 ```
 
 ## Support

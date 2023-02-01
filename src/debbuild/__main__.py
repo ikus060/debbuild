@@ -17,7 +17,6 @@ def main():
         version=cfg.version,
         deb=cfg.deb,
         data_src=cfg.data_src,
-        data_prefix=cfg.data_prefix,
         preinst=cfg.preinst,
         postinst=cfg.postinst,
         prerm=cfg.prerm,

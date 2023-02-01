@@ -28,18 +28,18 @@ class TestDebbuild(unittest.TestCase):
 
     def test_debbuild(self):
         # Given required parameter, debuild run without error.
-        debbuild(name='mypackage', version='1.0.1', data_src=self.dir, data_prefix='/opt/mypackage')
+        debbuild(name='mypackage', version='1.0.1', data_src='/opt/mypackage=%s' % (self.dir))
 
     def test_debbuild_with_relative_data_src(self):
         # Given a relative data_src
         data_src = self.dir
         data_src = os.path.relpath(data_src, os.getcwd())
-        debbuild(name='mypackage', version='1.0.1', data_src=self.dir, data_prefix='/opt/mypackage')
+        debbuild(name='mypackage', version='1.0.1', data_src='/opt/mypackage=%s' % (self.dir))
 
     def test_debbuild_with_output(self):
         tmp = tempfile.gettempdir()
         # Given a build with output
-        debbuild(name='mypackage', version='1.0.1', data_src=self.dir, data_prefix='/opt/mypackage', output=tmp)
+        debbuild(name='mypackage', version='1.0.1', data_src='/opt/mypackage=%s' % (self.dir), output=tmp)
         # Then file is created in output
         expected_output = os.path.join(tmp, "mypackage_1.0.1_all.deb")
         self.assertTrue(os.path.isfile(expected_output))
@@ -50,8 +50,7 @@ class TestDebbuild(unittest.TestCase):
         debbuild(
             name='mypackage',
             version='1.0.1',
-            data_src=self.dir,
-            data_prefix='/opt/mypackage',
+            data_src='/opt/mypackage=%s' % (self.dir),
             symlink=["/usr/bin/mypackage=/opt/mypackage/coucou"],
         )
 
@@ -60,7 +59,6 @@ class TestDebbuild(unittest.TestCase):
         debbuild(
             name='mypackage',
             version='1.0.1',
-            data_src=self.dir,
-            data_prefix='/opt/mypackage',
+            data_src='/opt/mypackage=%s' % (self.dir),
             symlink=[("/usr/bin/mypackage", "/opt/mypackage/coucou")],
         )
