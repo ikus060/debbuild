@@ -319,8 +319,8 @@ def _walk(data_src, staging_dir, **kwargs):
     for prefix, data in _as_tuple(data_src, 'expect `data-src` to be define as <prefix>=<data>'):
 
         # Validate Path
-        if not os.path.exists(data):
-            raise DebBuildException("data-src path `%s` is not a directory" % data)
+        if not os.path.isfile(data) and not os.path.isdir(data):
+            raise DebBuildException("data-src path `%s` must be a file or directory" % data)
 
         # Make sure prefix start with dot (.)
         if not prefix.startswith("."):
