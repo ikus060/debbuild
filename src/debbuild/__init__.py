@@ -270,19 +270,18 @@ def _write_control_md5sums(build_dir, **kwargs):
     first = True
     with open(filename, "w") as f:
         for path, target in _walk(**kwargs):
-            if not os.path.isfile(path):
-                continue
-            with open(path, "rb") as input:
-                md5_value = hashlib.md5(input.read()).hexdigest()
-            # Print newline between file only
-            if first:
-                first = False
-            else:
-                f.write("\n")
-            # md5hash + 2 spaces + filename without ./
-            f.write(md5_value)
-            f.write("  ")
-            f.write(target[2:])
+            if os.path.isfile(path):
+                with open(path, "rb") as input:
+                    md5_value = hashlib.md5(input.read()).hexdigest()
+                # Print newline between file only
+                if first:
+                    first = False
+                else:
+                    f.write("\n")
+                # md5hash + 2 spaces + filename without ./
+                f.write(md5_value)
+                f.write("  ")
+                f.write(target[2:])
     return filename
 
 
