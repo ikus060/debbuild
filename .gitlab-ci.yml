@@ -37,7 +37,8 @@ e2e-test:
   stage: test
   script:
     - mkdir -p data/bin
-    - echo '#!/bin/sh\necho VERIFICATION' > data/bin/verify
+    - echo '#!/bin/sh' > data/bin/verify
+    - echo 'echo VERIFICATION' >> data/bin/verify
     - chmod +x data/bin/verify
     - pip install -e .
     - debbuild --name testpackage --version 1.0.1 --data-src /opt/testpackage=data --symlink /usr/bin/verify=/opt/testpackage/bin/verify
