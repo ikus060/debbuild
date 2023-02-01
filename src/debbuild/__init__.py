@@ -42,6 +42,8 @@ Section: misc
 Priority: optional
 Architecture: {{architecture}}
 Depends:
+{% for d in depends %} {{ d }},
+{% endfor -%}
 Maintainer: {{maintainer}}
 Homepage: {{ url }}
 Description: {{ description|replace("\n", " ") }}
@@ -131,7 +133,7 @@ def _config():
     )
     parser.add_argument(
         "--data-src",
-        help="The directory to include in the package. Must be define as <destination>=<path>. If you data is located in `./build/mypackage` and you want your application to be installed in `/opt/mypackage`, data should be defined as `--data /opt/mypackage=./build/mypackage`",
+        help="The directory to include in the package. This flag can be specified multiple times. Must be define as <destination>=<path>. If you data is located in `./build/mypackage` and you want your application to be installed in `/opt/mypackage`, data should be defined as `--data /opt/mypackage=./build/mypackage`",
         required=True,
         action='append',
         type=str,
@@ -177,11 +179,16 @@ def _config():
     parser.add_argument(
         "--symlink",
         "--link",
-        help="Define a symlink to be created as `<source>=<target>` e.g.: `--symlink /opt/mypackage/bin/mypackage=/usr/bin/mypackage`",
+        help="Define a symlink to be created as `<source>=<target>` This flag can be specified multiple times. e.g.: `--symlink /opt/mypackage/bin/mypackage=/usr/bin/mypackage`",
         action='append',
         type=str,
     )
-
+    parser.add_argument(
+        "--depends",
+        help="A dependency. This flag can be specified multiple times. e.g.: `--depends `",
+        action='append',
+        type=str,
+    )
     return parser.parse_args()
 
 
@@ -399,6 +406,7 @@ def debbuild(
     maintainer=DEFAULT_MAINTAINER,
     output=None,
     symlink=None,
+    depends=[],
 ):
     if source_date is None:
         source_date = datetime.datetime.now(datetime.timezone.utc)
@@ -434,6 +442,7 @@ def debbuild(
         maintainer=maintainer,
         url=url,
         symlink=symlink,
+        depends=depends,
     )
     # Move the archive to output folder.
     shutil.move(filename, os.path.join(output, os.path.basename(filename)))

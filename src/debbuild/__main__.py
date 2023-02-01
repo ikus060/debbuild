@@ -27,6 +27,7 @@ def main():
         maintainer=cfg.maintainer,
         output=cfg.output,
         symlink=cfg.symlink,
+        depends=cfg.depends,
     )
 
 
