@@ -1,6 +1,6 @@
 <p align="center">
 <a href="LICENSE"><img alt="License" src="https://img.shields.io/pypi/l/debbuild"></a>
-<a href="https://gitlab.com/ikus-soft/debbuild/pipelines"><img alt="Build" src="https://gitlab.com/ikus-soft/debbuild/badges/master/pipeline.svg"></a>
+<a href="https://gitlab.com/ikus-soft/debbuild/pipelines"><img alt="Build" src="https://gitlab.com/ikus-soft/debbuild/badges/main/pipeline.svg"></a>
 <a href="https://sonar.ikus-soft.com/dashboard?id=debbuild"><img alt="Quality Gate Minarca Client" src="https://sonar.ikus-soft.com/api/project_badges/measure?project=debbuild&metric=alert_status"></a>
 <a href="https://sonar.ikus-soft.com/dashboard?id=debbuild"><img alt="Coverage" src="https://sonar.ikus-soft.com/api/project_badges/measure?project=debbuild&metric=coverage"></a>
 </p>
