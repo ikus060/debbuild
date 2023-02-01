@@ -36,6 +36,12 @@ class TestDebbuild(unittest.TestCase):
         data_src = os.path.relpath(data_src, os.getcwd())
         debbuild(name='mypackage', version='1.0.1', data_src='/opt/mypackage=%s' % (self.dir))
 
+    def test_debbuild_with_file_data_src(self):
+        # Given a file data_src
+        data_src = self.dir
+        data_src = os.path.relpath(data_src, os.getcwd())
+        debbuild(name='mypackage', version='1.0.1', data_src='/opt/mypackage/bin/coucou=%s/coucou' % (self.dir))
+
     def test_debbuild_with_output(self):
         tmp = tempfile.gettempdir()
         # Given a build with output

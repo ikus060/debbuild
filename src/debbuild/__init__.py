@@ -319,7 +319,7 @@ def _walk(data_src, staging_dir, **kwargs):
     for prefix, data in _as_tuple(data_src, 'expect `data-src` to be define as <prefix>=<data>'):
 
         # Validate Path
-        if not os.path.isdir(data):
+        if not os.path.exists(data):
             raise DebBuildException("data-src path `%s` is not a directory" % data)
 
         # Make sure prefix start with dot (.)
@@ -331,11 +331,12 @@ def _walk(data_src, staging_dir, **kwargs):
             yield data, "/".join(prefix.split("/")[0:i])
 
         # Loop on file and directory from data
-        for root, dirs, files in os.walk(data, followlinks=False):
-            for name in files + dirs:
-                path = os.path.join(root, name)
-                target = os.path.join(prefix + root[len(data) :], name)
-                yield path, target
+        if os.path.isdir(data):
+            for root, dirs, files in os.walk(data, followlinks=False):
+                for name in files + dirs:
+                    path = os.path.join(root, name)
+                    target = os.path.join(prefix + root[len(data) :], name)
+                    yield path, target
 
     # Loop on staging folder to include changelog and link.
     for root, dirs, files in os.walk(staging_dir, followlinks=False):
