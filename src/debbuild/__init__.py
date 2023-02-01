@@ -213,6 +213,7 @@ def _config():
         help="A dependency. This flag can be specified multiple times. e.g.: `--depends `",
         action='append',
         type=str,
+        default=[],
     )
     return parser.parse_args()
 
