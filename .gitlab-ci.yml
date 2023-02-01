@@ -33,6 +33,16 @@ isort:
 py3:
   <<: *tox
 
+e2e-test:
+  stage: test
+  script:
+    - pip install -e .
+    - mkdir -p data/bin
+    - echo '#!/bin/bash\necho VERIFICATION' > data/bin/verify
+    - debbuild --name testpackage --version 1.0.1 --data-src /opt/testpackage=data --symlink /usr/bin/verify=/opt/testpackage/bin/verify
+    - dkpg -i testpackage_1.0.1_all.deb
+    - verify
+
 bdist:py3:
   stage: bdist
   needs: []
