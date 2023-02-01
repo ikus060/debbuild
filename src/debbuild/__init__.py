@@ -204,7 +204,7 @@ def _config():
     parser.add_argument(
         "--symlink",
         "--link",
-        help="Define a symlink to be created as `<source>=<target>` This flag can be specified multiple times. e.g.: `--symlink /opt/mypackage/bin/mypackage=/usr/bin/mypackage`",
+        help="Define a symlink to be created as `<link>=<target>` This flag can be specified multiple times. e.g.: `--symlink /opt/mypackage/bin/mypackage=/usr/bin/mypackage`",
         action='append',
         type=str,
     )
@@ -336,13 +336,13 @@ def _write_symlink(symlink, staging_dir, **kwargs):
     Create the symlink in staging folder.
     """
     # Loop on symlink
-    for src, dst in _as_tuple(symlink, 'expect symlink to be define as <source>=<target>'):
+    for link, target in _as_tuple(symlink, 'expect symlink to be define as <link>=<target>'):
         # Make the path relative
-        dst = os.path.join(staging_dir, dst.strip('/'))
+        link = os.path.join(staging_dir, link.strip('/'))
         # Create missing directories
-        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        os.makedirs(os.path.dirname(link), exist_ok=True)
         # Finally create the symlink.
-        os.symlink(src, dst)
+        os.symlink(target, link)
 
 
 def _walk(data_src, staging_dir, **kwargs):
