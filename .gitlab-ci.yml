@@ -40,7 +40,7 @@ e2e-test:
     - mkdir -p data/bin
     - echo '#!/bin/bash\necho VERIFICATION' > data/bin/verify
     - debbuild --name testpackage --version 1.0.1 --data-src /opt/testpackage=data --symlink /usr/bin/verify=/opt/testpackage/bin/verify
-    - dkpg -i testpackage_1.0.1_all.deb
+    - apt install ./testpackage_1.0.1_all.deb
     - verify
 
 bdist:py3:
