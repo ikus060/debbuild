@@ -11,7 +11,7 @@ import shutil
 import tempfile
 import unittest
 
-from debbuild import DebBuildException, debbuild
+from debbuild import DebBuildException, _config, debbuild
 
 
 class TestDebbuild(unittest.TestCase):
@@ -103,3 +103,6 @@ class TestDebbuild(unittest.TestCase):
                 data_src='/opt/mypackage=%s' % (self.dir),
                 symlink=[("/usr/bin/mypackage", "")],
             )
+
+    def test_config(self):
+        _config(args=['--name', 'test', '--data-src', f'/opt/mypackage={self.dir}'])

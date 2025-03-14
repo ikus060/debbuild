@@ -107,7 +107,7 @@ def _isdir(path):
     return stat.S_ISDIR(st.st_mode)
 
 
-def _config():
+def _config(args=None):
     parser = argparse.ArgumentParser(
         prog="debbuild",
         description="TODO",
@@ -219,7 +219,7 @@ def _config():
             type=str,
             default=[],
         )
-    return parser.parse_args()
+    return parser.parse_args(args)
 
 
 def _as_tuple(value, error_message):
