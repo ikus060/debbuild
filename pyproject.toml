@@ -1,3 +1,53 @@
+[build-system]
+requires = ["setuptools>=66", "setuptools_scm[toml]>=6.2", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "debbuild"
+authors = [
+    { name = "IKUS Software inc.", email = "support@ikus-soft.com" }
+]
+description = "Command line utility to build Deb package without Debian"
+readme = "README.md"
+requires-python = ">=3.6, <4"
+license = { file = "LICENSE" }
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Desktop Environment"
+]
+dependencies = [
+    "Jinja2>=2.10,<4",
+    "unix_ar"
+]
+dynamic = ["version"]
+
+[tool.setuptools]
+packages = ["debbuild"]
+package-dir = { "" = "src" }
+include-package-data = true
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+]
+
+[project.scripts]
+debbuild = "debbuild.__main__:main"
+
+[project.urls]
+Homepage = "https://gitlab.com/ikus-soft/debbuild"
+source = "https://gitlab.com/ikus-soft/debbuild"
+bug_tracker = "https://gitlab.com/ikus-soft/debbuild/-/issues"
+
 [tool.black]
 line-length = 120
 skip-string-normalization = "True"

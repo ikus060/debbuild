@@ -49,8 +49,8 @@ bdist:py3:
   stage: bdist
   needs: []
   script:
-    - pip3 install wheel
-    - python3 setup.py sdist bdist_wheel
+    - pip3 install build
+    - python -m build
   dependencies: []
   artifacts:
     paths:
