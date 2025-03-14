@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Debbuild
 #
-# Copyright (C) 2023 IKUS Software. All rights reserved.
+# Copyright (C) 2025 IKUS Software. All rights reserved.
 # IKUS Software inc. PROPRIETARY/CONFIDENTIAL.
 # Use is subject to license terms.
 #
@@ -42,9 +42,12 @@ Version: {{version}}
 Section: misc
 Priority: optional
 Architecture: {{architecture}}
-Depends: {{ ', '.join(depends) }}
 Maintainer: {{maintainer}}
 Homepage: {{ url }}
+{% for key, items in [('Depends', depends), ('Recommends', recommends), ('Suggests', suggests), ('Conflicts', conflicts), ('Replaces', replaces), ('Provides', provides), ('Breaks', breaks)] -%}
+{%- if items %}{{ key }}: {{ ', '.join(items) }}
+{% endif -%}
+{%- endfor -%}
 Description: {{ description|replace("\n", " ") }}
 {%- filter indent(width=1) %}
 {{ long_description | replace("\n", " ") | wordwrap(78) }}
@@ -208,13 +211,14 @@ def _config():
         action='append',
         type=str,
     )
-    parser.add_argument(
-        "--depends",
-        help="A dependency. This flag can be specified multiple times. e.g.: `--depends `",
-        action='append',
-        type=str,
-        default=[],
-    )
+    for key in ['depends', 'recommends', 'suggests', 'conflicts', 'replaces', 'provides', 'breaks']:
+        parser.add_argument(
+            f"--{key}",
+            help=f"Define a new {key}",
+            action='append',
+            type=str,
+            default=[],
+        )
     return parser.parse_args()
 
 
@@ -439,6 +443,11 @@ def debbuild(
     output=None,
     symlink=None,
     depends=[],
+    recommends=[],
+    suggests=[],
+    conflicts=[],
+    provides=[],
+    breaks=[],
 ):
     if source_date is None:
         source_date = datetime.datetime.now(datetime.timezone.utc)
@@ -475,6 +484,11 @@ def debbuild(
         url=url,
         symlink=symlink,
         depends=depends,
+        recommends=recommends,
+        suggests=suggests,
+        conflicts=conflicts,
+        provides=provides,
+        breaks=breaks,
     )
     # Move the archive to output folder.
     shutil.move(filename, os.path.join(output, os.path.basename(filename)))

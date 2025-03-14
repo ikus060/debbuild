@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Debbuild
 #
-# Copyright (C) 2023 IKUS Software. All rights reserved.
+# Copyright (C) 2025 IKUS Software. All rights reserved.
 # IKUS Software inc. PROPRIETARY/CONFIDENTIAL.
 # Use is subject to license terms.
 #
@@ -45,7 +45,19 @@ class TestDebbuild(unittest.TestCase):
     def test_debbuild_with_output(self):
         tmp = tempfile.gettempdir()
         # Given a build with output
-        debbuild(name='mypackage', version='1.0.1', data_src='/opt/mypackage=%s' % (self.dir), output=tmp)
+        debbuild(
+            name='mypackage',
+            version='1.0.1',
+            data_src='/opt/mypackage=%s' % (self.dir),
+            output=tmp,
+            depends=['libc6', 'libstdc++6'],
+            recommends=['xdg-utils'],
+            suggests=['zenity|kdialog'],
+            conflicts=['test'],
+            provides=['mypackage'],
+            breaks=['mypackage<1'],
+        )
+
         # Then file is created in output
         expected_output = os.path.join(tmp, "mypackage_1.0.1_all.deb")
         self.assertTrue(os.path.isfile(expected_output))

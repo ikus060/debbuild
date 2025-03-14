@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Debbuild
 #
-# Copyright (C) 2023 IKUS Software. All rights reserved.
+# Copyright (C) 2025 IKUS Software. All rights reserved.
 # IKUS Software inc. PROPRIETARY/CONFIDENTIAL.
 # Use is subject to license terms.
 #
@@ -28,6 +28,11 @@ def main():
         output=cfg.output,
         symlink=cfg.symlink,
         depends=cfg.depends,
+        recommends=cfg.recommends,
+        suggests=cfg.suggests,
+        conflicts=cfg.conflicts,
+        provides=cfg.provides,
+        breaks=cfg.breaks,
     )
 
 
