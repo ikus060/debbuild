@@ -35,6 +35,8 @@ packages = ["debbuild"]
 package-dir = { "" = "src" }
 include-package-data = true
 
+[tool.setuptools_scm]
+
 [project.optional-dependencies]
 test = [
     "pytest",
