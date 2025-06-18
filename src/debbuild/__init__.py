@@ -219,6 +219,13 @@ def _config(args=None):
             type=str,
             default=[],
         )
+    parser.add_argument(
+        "--config-file",
+        help="Additional file to be marked as a configuration file (can be specified multiple times)",
+        action='append',
+        default=[],
+        type=str,
+    )
     return parser.parse_args(args)
 
 
@@ -261,6 +268,25 @@ def _debian_binary(build_dir, **kwargs):
     return filename
 
 
+def _collect_conffiles(data_src, config_files, staging_dir):
+    """
+    Collect files considered as conffiles, based on default (/etc) and user-supplied list.
+    Returns a list of relative paths (starting with /) to include in DEBIAN/conffiles
+    """
+    conffiles = set()
+    for path, target in _walk(data_src=data_src, staging_dir=staging_dir):
+        if _isfile(path) and target.startswith("./etc/"):
+            conffiles.add(target[1:])  # remove leading '.' to get absolute-like path
+
+    # Add user-supplied files explicitly
+    for custom in config_files:
+        if not custom.startswith("/"):
+            raise DebBuildException("Custom config file must start with '/': %s" % custom)
+        conffiles.add(custom)
+
+    return sorted(conffiles)
+
+
 def _control_tar(build_dir, **kwargs):
     """
     Create control.tar.gz
@@ -273,6 +299,15 @@ def _control_tar(build_dir, **kwargs):
 
     # Write md5sum
     f.add(_write_control_md5sums(build_dir=build_dir, **kwargs), arcname="./md5sums", filter=_filter(mode=0o644))
+
+    # Write conffiles if any
+    conffiles = _collect_conffiles(kwargs["data_src"], kwargs["config_files"] or [], kwargs["staging_dir"])
+    if conffiles:
+        conffile_path = os.path.join(build_dir, "conffiles")
+        with open(conffile_path, "w") as fconf:
+            for path in conffiles:
+                fconf.write(path + "\n")
+        f.add(conffile_path, arcname="./conffiles", filter=_filter(mode=0o644))
 
     # Add post & pre scripts
     for script in ["preinst", "postinst", "prerm", "postrm"]:
@@ -448,6 +483,7 @@ def debbuild(
     conflicts=[],
     provides=[],
     breaks=[],
+    config_files=[],
 ):
     if source_date is None:
         source_date = datetime.datetime.now(datetime.timezone.utc)
@@ -489,6 +525,7 @@ def debbuild(
         conflicts=conflicts,
         provides=provides,
         breaks=breaks,
+        config_files=config_files,
     )
     # Move the archive to output folder.
     shutil.move(filename, os.path.join(output, os.path.basename(filename)))

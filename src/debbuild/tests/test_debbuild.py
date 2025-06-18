@@ -106,3 +106,12 @@ class TestDebbuild(unittest.TestCase):
 
     def test_config(self):
         _config(args=['--name', 'test', '--data-src', f'/opt/mypackage={self.dir}'])
+
+    def test_configfiles_custom(self):
+        # Given a build with output
+        debbuild(
+            name='mypackage',
+            version='1.0.1',
+            data_src='/opt/mypackage=%s' % (self.dir),
+            config_files=["/opt/mypackage/coucou"],
+        )
