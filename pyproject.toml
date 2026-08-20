@@ -38,6 +38,11 @@ include-package-data = true
 [tool.setuptools_scm]
 
 [project.optional-dependencies]
+dev = [
+    "black==25.9.0",
+    "flake8",
+    "isort==7.0.0",
+]
 test = [
     "pytest",
 ]
