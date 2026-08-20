@@ -6,20 +6,20 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 <!-- insertion marker -->
-## Unreleased
+## [0.3.0](https://gitlab.com/ikus-soft/debbuild/tags/0.3.0) - 2026-08-20
 
-<small>[Compare with latest](https://gitlab.com/ikus-soft/debbuild/compare/0.2.2...HEAD)</small>
+<small>[Compare with 0.2.2](https://gitlab.com/ikus-soft/debbuild/compare/0.2.2...0.3.0)</small>
 
 ### Added
 
-- build: add changelog and release tox environments ([48c128c](https://gitlab.com/ikus-soft/debbuild/commit/48c128cd83f26a7894b172dfe76239770f9cc7ee) by Patrik Dufresne).
+- debbuild: add support for custom changelog file ([f4f70e8](https://gitlab.com/ikus-soft/debbuild/commit/f4f70e80fb299e9c63ee593f9b9747626114494a) by Patrik Dufresne).
+- build: add changelog and release tox environments ([7714733](https://gitlab.com/ikus-soft/debbuild/commit/77147333ca58db7a0d0c055a8e28b7f762ae098a) by Patrik Dufresne).
 - build: add isort config to pyproject.toml ([8b3956b](https://gitlab.com/ikus-soft/debbuild/commit/8b3956b71a064d83c8639bc3574a6aaedbc816af) by Patrik Dufresne).
 
 ### Merged
 
 - ci: merge lint tox environments into single lint target ([517ea11](https://gitlab.com/ikus-soft/debbuild/commit/517ea1137b97e2563145a5d4ed9f1a3d4259f728) by Patrik Dufresne).
 
-<!-- insertion marker -->
 ## [0.2.2](https://gitlab.com/ikus-soft/debbuild/tags/0.2.2) - 2025-06-18
 
 <small>[Compare with 0.2.1](https://gitlab.com/ikus-soft/debbuild/compare/0.2.1...0.2.2)</small>
@@ -78,4 +78,3 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - Initial version ([58bf96c](https://gitlab.com/ikus-soft/debbuild/commit/58bf96c2c9c3193f417506013364241f598b9ca5) by Patrik Dufresne).
 - Initial commit ([2e924a9](https://gitlab.com/ikus-soft/debbuild/commit/2e924a92d6bc1fc5984f8c0f46dac580240d3823) by Patrik Dufresne).
-
