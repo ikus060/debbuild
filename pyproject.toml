@@ -36,6 +36,7 @@ package-dir = { "" = "src" }
 include-package-data = true
 
 [tool.setuptools_scm]
+version_scheme = "no-guess-dev"
 
 [project.optional-dependencies]
 dev = [
@@ -62,3 +63,13 @@ skip-string-normalization = "True"
 [tool.isort]
 profile = "black"
 line_length = 120
+
+[tool.git-changelog]
+output = "CHANGELOG.md"
+template = "keepachangelog"
+convention = "linux"
+sections = [":all:"]  # Include all sections
+include-all = true  # Include all random msg
+in-place = 1
+jinja_context = { debian_package_name = "cherrypy-foundation", debian_version_suffix = "-1" }
+versioning = "pep440"
