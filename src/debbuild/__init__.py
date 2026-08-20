@@ -226,6 +226,12 @@ def _config(args=None):
         default=[],
         type=str,
     )
+    parser.add_argument(
+        "--changelog",
+        help="Path to a custom Debian changelog file to be used instead of the auto-generated one. The file will be compressed and installed as /usr/share/doc/<name>/changelog.gz",
+        type=str,
+        default=None,
+    )
     return parser.parse_args(args)
 
 
@@ -360,14 +366,24 @@ def _write_control_md5sums(build_dir, **kwargs):
     return filename
 
 
-def _write_changelog(name, staging_dir, **kwargs):
+def _write_changelog(name, staging_dir, changelog=None, **kwargs):
     """
-    Create a changelog.gz
+    Create a changelog.gz. If a custom changelog file is provided, use its
+    content instead of the auto-generated template.
     """
     filename = os.path.join(staging_dir, f"usr/share/doc/{name}/changelog.gz")
     os.makedirs(os.path.dirname(filename))
-    with gzip.open(filename, "w") as f:
-        f.write(_template(TMPL_CHANGELOG, name=name, **kwargs).encode("utf-8"))
+
+    if changelog:
+        if not _isfile(changelog):
+            raise DebBuildException("changelog `%s` must be a file" % changelog)
+        with gzip.open(filename, "w") as f:
+            with open(changelog, "rb") as src:
+                shutil.copyfileobj(src, f)
+    else:
+        with gzip.open(filename, "w") as f:
+            f.write(_template(TMPL_CHANGELOG, name=name, **kwargs).encode("utf-8"))
+
     return filename
 
 
@@ -484,6 +500,7 @@ def debbuild(
     provides=[],
     breaks=[],
     config_files=[],
+    changelog=None,
 ):
     if source_date is None:
         source_date = datetime.datetime.now(datetime.timezone.utc)
@@ -526,6 +543,7 @@ def debbuild(
         provides=provides,
         breaks=breaks,
         config_files=config_files,
+        changelog=changelog,
     )
     # Move the archive to output folder.
     shutil.move(filename, os.path.join(output, os.path.basename(filename)))
