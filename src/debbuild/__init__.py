@@ -9,9 +9,11 @@ import gzip
 import hashlib
 import shutil
 import tarfile
+from email.utils import parseaddr
 from pathlib import Path
 
 import jinja2
+import license
 import unix_ar
 
 STAGING_DIR = "staging"
@@ -33,6 +35,11 @@ DEFAULT_URL = "http://no-url-given.example.com/"
 DEFAULT_DESCRIPTION = "no description given"
 
 DEFAULT_LONG_DESCRIPTION = "No long description given for this package."
+
+DEFAULT_LICENSE_NAME = "Undefined"
+
+DEFAULT_LICENSE_TEXT = """License text not provided. Please define a license using --license-text
+or --license-name option."""
 
 TMPL_CONTROL = """Package: {{name}}
 Version: {{version}}
@@ -56,6 +63,17 @@ TMPL_CHANGELOG = """{{name}} ({{version}}) {{distribution}}; urgency=medium
   * Package created with DebBuild.
 
  -- {{maintainer}}  {{source_date.strftime("%a, %d %b %Y %T %z")}}
+"""
+
+TMPL_COPYRIGHT = """Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: {{name}}
+Upstream-Contact: {{maintainer}}
+Source: {{url}}
+
+Files: *
+Copyright: {{copyright}}
+License: {{license_name}}
+{{license_text|replace('\n\n', '\n.\n')|indent(1, blank=True, first=True)}}
 """
 
 
@@ -207,6 +225,29 @@ def _config(args=None):
         type=str,
         default=None,
     )
+    parser.add_argument(
+        "--copyright-file",
+        help="Path to a copyright file to be used. The file will be installed as /usr/share/doc/<name>/copyright",
+        type=str,
+        default=None,
+    )
+    parser.add_argument(
+        "--copyright",
+        help="Copyright holder(s). Default: current year + maintainer",
+        type=str,
+        default=None,
+    )
+    parser.add_argument(
+        "--license-name",
+        help=f"License name (e.g., MIT, GPL-3.0, Apache-2.0). Default: {DEFAULT_LICENSE_NAME}",
+        type=str,
+        default=DEFAULT_LICENSE_NAME,
+    )
+    parser.add_argument(
+        "--license-text",
+        help="Custom license text file path.",
+        type=str,
+    )
     return parser.parse_args(args)
 
 
@@ -350,6 +391,48 @@ def _write_changelog(name, staging_dir, changelog=None, **kwargs):
             f.write(content.encode("utf-8"))
 
 
+def _write_copyright(
+    name, staging_dir, maintainer, url, copyright_file, copyright, license_name, license_text, **kwargs
+):
+    """
+    Create a copyright file in Debian DEP-5 format.
+    If not provided, generates a default copyright file.
+    """
+    staging_path = Path(staging_dir)
+    filename = staging_path / f"usr/share/doc/{name}/copyright"
+    filename.parent.mkdir(parents=True, exist_ok=True)
+
+    if copyright_file:
+        if not Path(copyright_file).is_file(follow_symlinks=False):
+            raise DebBuildException("copyright-file `%s` must be a file" % copyright_file)
+        filename.write_text(Path(copyright_file).read_text())
+        return
+
+    # Default copyright year and holder
+    year = datetime.datetime.now().year
+
+    # Default
+    if license_name == DEFAULT_LICENSE_NAME and license_text is None:
+        license_text = DEFAULT_LICENSE_TEXT
+    elif not license_text:
+        maintainer_name, maintainer_email = parseaddr(maintainer, strict=False)
+        try:
+            license_text = license.find(license_name).render(year=year, name=maintainer_name, email=maintainer_email)
+        except KeyError:
+            pass
+
+    content = _template(
+        TMPL_COPYRIGHT,
+        name=name,
+        maintainer=maintainer,
+        url=url,
+        copyright=copyright or f"{year} {maintainer}",
+        license_name=license_name,
+        license_text=license_text or "",
+    )
+    filename.write_text(content if content.endswith("\n") else content + "\n")
+
+
 def _write_symlink(symlink, staging_dir, **kwargs):
     """
     Create the symlink in staging folder.
@@ -425,6 +508,8 @@ def _archive_deb(**kwargs):
 
     # Generate change log
     _write_changelog(**kwargs)
+    # Generate copyright
+    _write_copyright(**kwargs)
     # Generate symlinks
     _write_symlink(**kwargs)
 
@@ -466,6 +551,10 @@ def debbuild(
     breaks=[],
     config_files=[],
     changelog=None,
+    copyright_file=None,
+    copyright=None,
+    license_name=DEFAULT_LICENSE_NAME,
+    license_text=None,
 ):
     if source_date is None:
         source_date = datetime.datetime.now(datetime.timezone.utc)
@@ -511,6 +600,10 @@ def debbuild(
         breaks=breaks,
         config_files=config_files,
         changelog=changelog,
+        copyright_file=copyright_file,
+        copyright=copyright,
+        license_name=license_name,
+        license_text=license_text,
     )
     # Move the archive to output folder.
     shutil.move(filename, output_path / filename.name)

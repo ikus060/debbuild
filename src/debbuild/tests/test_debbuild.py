@@ -3,6 +3,7 @@
 #
 # SPDX-License-Identifier: MIT
 
+import datetime
 import gzip
 import os
 import shutil
@@ -215,7 +216,66 @@ class TestDebbuild(unittest.TestCase):
         subprocess.check_call([LINTIAN, '-I', 'mypackage_1.0.1_all.deb'])
         # Then no error get raised
 
+    def test_license_with_mit(self):
+        # When a package is generated with a license-name
+        tmp = tempfile.gettempdir()
+        debbuild(
+            name='mypackage',
+            url="http://homepage.com",
+            description="This is a test package",
+            maintainer="Patrik <patrik@ikus-soft.com>",
+            long_description="This is a long description" * 10,
+            version='1.0.1',
+            data_src='/usr/libexec=%s' % (self.dir),
+            license_name='MIT',
+            output=tmp,
+        )
+        expected_output = os.path.join(tmp, "mypackage_1.0.1_all.deb")
+        self.assertTrue(os.path.isfile(expected_output))
+        # Then pacakge include a copyright file.
+        content = self._extract_copyright(expected_output)
+        current_year = datetime.datetime.now().year
+        self.assertEqual(
+            content.decode(),
+            f"""Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: mypackage
+Upstream-Contact: Patrik <patrik@ikus-soft.com>
+Source: http://homepage.com
+
+Files: *
+Copyright: {current_year} Patrik <patrik@ikus-soft.com>
+License: MIT
+ The MIT License (MIT)
+ .
+ Copyright (c) {current_year} Patrik <patrik@ikus-soft.com>
+ .
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+ .
+ The above copyright notice and this permission notice shall be included in
+ all copies or substantial portions of the Software.
+ .
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ THE SOFTWARE.
+""",
+        )
+
     def _extract_changelog(self, deb_path):
+        return self._extract_file_content(deb_path, './usr/share/doc/mypackage/changelog.gz')
+
+    def _extract_copyright(self, deb_path):
+        return self._extract_file_content(deb_path, './usr/share/doc/mypackage/copyright')
+
+    def _extract_file_content(self, deb_path, member_name):
         """
         Helper to extract and decompress the changelog.gz content from a .deb archive's data.tar.gz.
         """
@@ -233,9 +293,11 @@ class TestDebbuild(unittest.TestCase):
                 ar.close()
 
             with tarfile.open(data_tar_path, 'r:gz') as tar:
-                member_name = './usr/share/doc/mypackage/changelog.gz'
-                changelog_gz = tar.extractfile(member_name)
-                with gzip.open(changelog_gz, 'rt') as f:
-                    return f.read()
+                fn = tar.extractfile(member_name)
+                if member_name.endswith('.gz'):
+                    with gzip.open(fn, 'rt') as f:
+                        return f.read()
+                else:
+                    return fn.read()
         finally:
             shutil.rmtree(extract_dir)
