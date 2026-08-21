@@ -7,6 +7,7 @@ import argparse
 import datetime
 import gzip
 import hashlib
+import platform
 import shutil
 import tarfile
 from email.utils import parseaddr
@@ -23,8 +24,6 @@ DEFAULT_BUILD_DIR = ".debbuild"
 DEFAULT_VERSION = "1.0"
 
 DEFAULT_DEB = "{{name}}_{{version}}_{{architecture}}.deb"
-
-DEFAULT_ARCHITECTURE = "all"
 
 DEFAULT_DISTRIBUTION = "unstable"
 
@@ -79,6 +78,18 @@ License: {{license_name}}
 
 class DebBuildException(Exception):
     pass
+
+
+def get_architecture(architecture):
+    """Get the current system architecture."""
+    machine = architecture or platform.machine()
+    arch_map = {
+        'x86_64': 'amd64',
+        'amd64': 'amd64',
+        'aarch64': 'arm64',
+        'arm64': 'arm64',
+    }
+    return arch_map.get(machine, machine)
 
 
 def _filter(mode=None, mask=None, uid=0, gid=0, uname="root", gname="root"):
@@ -189,7 +200,6 @@ def _config(args=None):
         "--architecture",
         help="The architecture name. Usually matches `uname -m`. e.g.: all, amd64, i386",
         type=str,
-        default=DEFAULT_ARCHITECTURE,
     )
     parser.add_argument(
         "--distribution",
@@ -539,7 +549,7 @@ def debbuild(
     postinst=None,
     prerm=None,
     postrm=None,
-    architecture=DEFAULT_ARCHITECTURE,
+    architecture=None,
     distribution=DEFAULT_DISTRIBUTION,
     source_date=None,
     url=None,
@@ -589,7 +599,7 @@ def debbuild(
         postinst=postinst,
         prerm=prerm,
         postrm=postrm,
-        architecture=architecture,
+        architecture=get_architecture(architecture),
         distribution=distribution,
         source_date=source_date,
         maintainer=maintainer,

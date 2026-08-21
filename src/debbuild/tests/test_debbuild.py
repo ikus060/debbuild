@@ -63,6 +63,7 @@ class TestDebbuild(unittest.TestCase):
             conflicts=['test'],
             provides=['mypackage'],
             breaks=['mypackage<1'],
+            architecture='all',
         )
 
         # Then file is created in output
@@ -130,6 +131,7 @@ class TestDebbuild(unittest.TestCase):
             name='mypackage',
             version='1.0.1',
             data_src='/opt/mypackage=%s' % (self.dir),
+            architecture='all',
             output=tmp,
         )
 
@@ -163,6 +165,7 @@ class TestDebbuild(unittest.TestCase):
             data_src='/opt/mypackage=%s' % (self.dir),
             output=tmp,
             changelog=changelog_path,
+            architecture='all',
         )
 
         # Then the deb archive is created
@@ -228,6 +231,7 @@ class TestDebbuild(unittest.TestCase):
             version='1.0.1',
             data_src='/usr/libexec=%s' % (self.dir),
             license_name='MIT',
+            architecture='all',
             output=tmp,
         )
         expected_output = os.path.join(tmp, "mypackage_1.0.1_all.deb")
@@ -268,6 +272,27 @@ License: MIT
  THE SOFTWARE.
 """,
         )
+
+    def test_debbuild_architecture(self):
+        # When creating a deb with default architecture.
+        tmp = tempfile.gettempdir()
+        debbuild(
+            name='mypackage',
+            version='1.0.1',
+            data_src='/opt/mypackage=%s' % (self.dir),
+            output=tmp,
+            depends=['libc6', 'libstdc++6'],
+            recommends=['xdg-utils'],
+            suggests=['zenity|kdialog'],
+            conflicts=['test'],
+            provides=['mypackage'],
+            breaks=['mypackage<1'],
+            architecture='amd64',
+        )
+
+        # Then file is created with amd64
+        expected_output = os.path.join(tmp, "mypackage_1.0.1_amd64.deb")
+        self.assertTrue(os.path.isfile(expected_output))
 
     def _extract_changelog(self, deb_path):
         return self._extract_file_content(deb_path, './usr/share/doc/mypackage/changelog.gz')
