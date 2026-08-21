@@ -297,7 +297,7 @@ def _collect_conffiles(data_src, config_files, staging_dir):
     """
     conffiles = set()
     for path, target in _walk(data_src=data_src, staging_dir=staging_dir):
-        if path.is_file(follow_symlinks=False) and target.startswith("./etc/"):
+        if (path.is_file() and not path.is_symlink()) and target.startswith("./etc/"):
             conffiles.add(target[1:])  # remove leading '.' to get absolute-like path
 
     # Add user-supplied files explicitly
@@ -335,7 +335,8 @@ def _control_tar(build_dir, **kwargs):
             if not kwargs.get(script):
                 continue
             path = kwargs[script]
-            if not Path(path).is_file(follow_symlinks=False):
+            p = Path(path)
+            if not p.is_file() or p.is_symlink():
                 raise DebBuildException("%s script `%s` must be a file" % (script, path))
             f.add(path, arcname="./" + script, filter=_filter(mode=0o755))
 
@@ -362,7 +363,7 @@ def _write_control_md5sums(build_dir, **kwargs):
     lines = []
 
     for path, target in _walk(**kwargs):
-        if path.is_file(follow_symlinks=False):
+        if path.is_file() and not path.is_symlink():
             md5_value = hashlib.md5(path.read_bytes()).hexdigest()
             # md5hash + 2 spaces + filename without ./
             lines.append(f"{md5_value}  {target[2:]}")
@@ -381,10 +382,11 @@ def _write_changelog(name, staging_dir, changelog=None, **kwargs):
     filename.parent.mkdir(parents=True, exist_ok=True)
 
     if changelog:
-        if not Path(changelog).is_file(follow_symlinks=False):
+        p = Path(changelog)
+        if not p.is_file() or p.is_symlink():
             raise DebBuildException("changelog `%s` must be a file" % changelog)
         with gzip.open(filename, "w") as f:
-            f.write(Path(changelog).read_bytes())
+            f.write(p.read_bytes())
     else:
         content = _template(TMPL_CHANGELOG, name=name, **kwargs)
         with gzip.open(filename, "w") as f:
@@ -403,9 +405,10 @@ def _write_copyright(
     filename.parent.mkdir(parents=True, exist_ok=True)
 
     if copyright_file:
-        if not Path(copyright_file).is_file(follow_symlinks=False):
+        p = Path(copyright_file)
+        if not p.is_file() or p.is_symlink():
             raise DebBuildException("copyright-file `%s` must be a file" % copyright_file)
-        filename.write_text(Path(copyright_file).read_text())
+        filename.write_text(p.read_text())
         return
 
     # Default copyright year and holder
@@ -455,7 +458,7 @@ def _walk(data_src, staging_dir, **kwargs):
     for prefix, data in _as_tuple(data_src, 'expect `data-src` to be defined as <prefix>=<data>'):
         # Validate Path
         data_path = Path(data)
-        if not (data_path.is_file(follow_symlinks=False) or data_path.is_dir(follow_symlinks=False)):
+        if not (data_path.is_dir() or data_path.is_file()) or data_path.is_symlink():
             raise DebBuildException("data-src path `%s` must be a file or directory" % data)
 
         # Make sure prefix start with dot (.)
@@ -465,13 +468,13 @@ def _walk(data_src, staging_dir, **kwargs):
         # Yield intermediate directories
         prefix_parts = prefix.split("/")
         for i in range(1, len(prefix_parts)):
-            path = data_path if data_path.is_dir(follow_symlinks=False) else data_path.parent
+            path = data_path if data_path.is_dir() else data_path.parent
             target = "/".join(prefix_parts[0:i])
             yield path, target
         yield data_path, prefix
 
         # Loop on file and directory from data
-        if data_path.is_dir(follow_symlinks=False):
+        if data_path.is_dir():
             for path in data_path.rglob("*"):
                 relative = path.relative_to(data_path)
                 target = f"{prefix}/{relative}"
