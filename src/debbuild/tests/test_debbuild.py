@@ -139,7 +139,7 @@ class TestDebbuild(unittest.TestCase):
         expected_output = os.path.join(tmp, "mypackage_1.0.1_all.deb")
         self.assertTrue(os.path.isfile(expected_output))
 
-        # Then the changelog.gz contains the auto-generated content
+        # Then the changelog.Debian.gz contains the auto-generated content
         content = self._extract_changelog(expected_output)
         self.assertIn('mypackage (1.0.1)', content)
         self.assertIn('Package created with DebBuild.', content)
@@ -172,7 +172,7 @@ class TestDebbuild(unittest.TestCase):
         expected_output = os.path.join(tmp, "mypackage_1.0.1_all.deb")
         self.assertTrue(os.path.isfile(expected_output))
 
-        # Then the changelog.gz contains our custom content verbatim
+        # Then the changelog.Debian.gz contains our custom content verbatim
         content = self._extract_changelog(expected_output)
         self.assertEqual(custom_content, content)
         self.assertNotIn('Package created with DebBuild.', content)
@@ -295,14 +295,14 @@ License: MIT
         self.assertTrue(os.path.isfile(expected_output))
 
     def _extract_changelog(self, deb_path):
-        return self._extract_file_content(deb_path, './usr/share/doc/mypackage/changelog.gz')
+        return self._extract_file_content(deb_path, './usr/share/doc/mypackage/changelog.Debian.gz')
 
     def _extract_copyright(self, deb_path):
         return self._extract_file_content(deb_path, './usr/share/doc/mypackage/copyright')
 
     def _extract_file_content(self, deb_path, member_name):
         """
-        Helper to extract and decompress the changelog.gz content from a .deb archive's data.tar.gz.
+        Helper to extract and decompress the changelog.Debian.gz content from a .deb archive's data.tar.gz.
         """
         extract_dir = tempfile.mkdtemp(prefix='debbuild_extract_')
         try:

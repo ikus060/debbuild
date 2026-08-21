@@ -231,7 +231,7 @@ def _config(args=None):
     )
     parser.add_argument(
         "--changelog",
-        help="Path to a custom Debian changelog file to be used instead of the auto-generated one. The file will be compressed and installed as /usr/share/doc/<name>/changelog.gz",
+        help="Path to a custom Debian changelog file to be used instead of the auto-generated one. The file will be compressed and installed as /usr/share/doc/<name>/changelog.Debian.gz",
         type=str,
         default=None,
     )
@@ -384,11 +384,11 @@ def _write_control_md5sums(build_dir, **kwargs):
 
 def _write_changelog(name, staging_dir, changelog=None, **kwargs):
     """
-    Create a changelog.gz. If a custom changelog file is provided, use its
+    Create a changelog.Debian.gz. If a custom changelog file is provided, use its
     content instead of the auto-generated template.
     """
     staging_path = Path(staging_dir)
-    filename = staging_path / f"usr/share/doc/{name}/changelog.gz"
+    filename = staging_path / f"usr/share/doc/{name}/changelog.Debian.gz"
     filename.parent.mkdir(parents=True, exist_ok=True)
 
     if changelog:
