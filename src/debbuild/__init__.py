@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
-# Debbuild
+# debbuild: Pure-Python DEB package builder.
+# Copyright (C) 2025-2026 Patrik Dufresne <patrik@ikus-soft.com>
 #
-# Copyright (C) 2025 IKUS Software. All rights reserved.
-# IKUS Software inc. PROPRIETARY/CONFIDENTIAL.
-# Use is subject to license terms.
-#
+# SPDX-License-Identifier: MIT
+
 import argparse
 import datetime
 import gzip
