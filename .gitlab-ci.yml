@@ -1,4 +1,4 @@
-image: python:3-bullseye
+image: python:3.13-bullseye
 
 stages:
   - test
@@ -24,9 +24,22 @@ stages:
 lint:
   <<: *tox
 
-py3:
+py310:
+  image: python:3.10-bullseye
   <<: *tox
 
+py311:
+  image: python:3.11-bullseye
+  <<: *tox
+
+py312:
+  image: python:3.12-bullseye
+  <<: *tox
+
+py313:
+  image: python:3.13-bullseye
+  <<: *tox
+  
 e2e-test:
   stage: test
   script:
@@ -53,7 +66,7 @@ bdist:py3:
 upload:sonar:
   stage: upload
   needs:
-    - py3
+    - py313
   image: sonarsource/sonar-scanner-cli
   variables:
     SONAR_PROJECT_BASE_DIR: "${CI_PROJECT_DIR}"
