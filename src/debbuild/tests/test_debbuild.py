@@ -6,20 +6,27 @@
 import gzip
 import os
 import shutil
+import subprocess
 import tarfile
 import tempfile
 import unittest
+from pathlib import Path
 
 from debbuild import DebBuildException, _config, debbuild
+
+LINTIAN = shutil.which('lintian')
 
 
 class TestDebbuild(unittest.TestCase):
     def setUp(self) -> None:
         # Create basic folder structure to be package for testing.
         self.dir = str(tempfile.mkdtemp(prefix='debbuild_test_'))
-        with open(os.path.join(self.dir, 'coucou'), 'w') as f:
-            f.write('#!/bin/sh')
-            f.write('echo coucou')
+        coucou_exe = Path(self.dir) / "coucou"
+        with open(coucou_exe, 'w') as f:
+            f.write('#!/bin/sh\n')
+            f.write('echo coucou\n')
+        Path(self.dir).chmod(0o0755)
+        coucou_exe.chmod(0o0755)
 
     def tearDown(self) -> None:
         # Remove the temporary folder.
@@ -191,6 +198,22 @@ class TestDebbuild(unittest.TestCase):
                 data_src='/opt/mypackage=%s' % (self.dir),
                 changelog=self.dir,
             )
+
+    @unittest.skipUnless(LINTIAN, 'required lintian')
+    def test_lintian(self):
+        # Given we create a package
+        debbuild(
+            name='mypackage',
+            url="http://homepage.com",
+            description="This is a test package",
+            maintainer="Patrik <patrik@ikus-soft.com>",
+            long_description="This is a long description" * 10,
+            version='1.0.1',
+            data_src='/usr/libexec=%s' % (self.dir),
+        )
+        # When running lintian
+        subprocess.check_call([LINTIAN, '-I', 'mypackage_1.0.1_all.deb'])
+        # Then no error get raised
 
     def _extract_changelog(self, deb_path):
         """
