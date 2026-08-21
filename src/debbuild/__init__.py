@@ -7,10 +7,9 @@ import argparse
 import datetime
 import gzip
 import hashlib
-import os
 import shutil
-import stat
 import tarfile
+from pathlib import Path
 
 import jinja2
 import unix_ar
@@ -64,9 +63,9 @@ class DebBuildException(Exception):
     pass
 
 
-def _filter(mode=None, mask=None, uid=0, gui=0, uname="root", gname="root"):
+def _filter(mode=None, mask=None, uid=0, gid=0, uname="root", gname="root"):
     """
-    Used to apply proper attribute to file archived.
+    Used to apply proper attributes to files archived.
     """
 
     def _filter(tarinfo):
@@ -75,40 +74,18 @@ def _filter(mode=None, mask=None, uid=0, gui=0, uname="root", gname="root"):
         if mask is not None:
             tarinfo.mode = tarinfo.mode & mask
         tarinfo.uid = uid
-        tarinfo.gid = gui
-        tarinfo.gname = uname
-        tarinfo.uname = gname
+        tarinfo.gid = gid
+        tarinfo.gname = gname
+        tarinfo.uname = uname
         return tarinfo
 
     return _filter
 
 
-def _isfile(path):
-    """
-    Return True if ans only if the path is a file. Doesn't follow symlink.
-    """
-    try:
-        st = os.stat(path, follow_symlinks=False)
-    except (OSError, ValueError):
-        return False
-    return stat.S_ISREG(st.st_mode)
-
-
-def _isdir(path):
-    """
-    Return True if ans only if the path is a file. Doesn't follow symlink.
-    """
-    try:
-        st = os.stat(path, follow_symlinks=False)
-    except (OSError, ValueError):
-        return False
-    return stat.S_ISDIR(st.st_mode)
-
-
 def _config(args=None):
     parser = argparse.ArgumentParser(
         prog="debbuild",
-        description="TODO",
+        description="Pure-Python DEB package builder",
     )
     parser.add_argument(
         "--name",
@@ -159,7 +136,7 @@ def _config(args=None):
     )
     parser.add_argument(
         "--data-src",
-        help="The directory to include in the package. This flag can be specified multiple times. Must be define as <destination>=<path>. If you data is located in `./build/mypackage` and you want your application to be installed in `/opt/mypackage`, data should be defined as `--data /opt/mypackage=./build/mypackage`",
+        help="The directory to include in the package. This flag can be specified multiple times. Must be defined as <destination>=<path>. If your data is located in `./build/mypackage` and you want your application to be installed in `/opt/mypackage`, data should be defined as `--data-src /opt/mypackage=./build/mypackage`",
         required=True,
         action='append',
         type=str,
@@ -187,7 +164,7 @@ def _config(args=None):
     )
     parser.add_argument(
         "--postrm",
-        help=" script to be run after package removal to purge remaining (config) files",
+        help="A script to be run after package removal to purge remaining (config) files",
         type=str,
     )
     parser.add_argument(
@@ -205,7 +182,7 @@ def _config(args=None):
     parser.add_argument(
         "--symlink",
         "--link",
-        help="Define a symlink to be created as `<link>=<target>` This flag can be specified multiple times. e.g.: `--symlink /opt/mypackage/bin/mypackage=/usr/bin/mypackage`",
+        help="Define a symlink to be created as `<link>=<target>`. This flag can be specified multiple times. e.g.: `--symlink /opt/mypackage/bin/mypackage=/usr/bin/mypackage`",
         action='append',
         type=str,
     )
@@ -235,7 +212,7 @@ def _config(args=None):
 
 def _as_tuple(value, error_message):
     """
-    Used to read --data-src and --symlink configuration that could be define as string, list of string or list of tuple.
+    Used to read --data-src and --symlink configuration that could be defined as string, list of string or list of tuple.
     """
     if value:
         # Support a single string value.
@@ -247,9 +224,9 @@ def _as_tuple(value, error_message):
             try:
                 try:
                     k, v = item
-                except ValueError:
+                except (ValueError, TypeError):
                     k, v = item.partition('=')[0::2]
-            except ValueError:
+            except (ValueError, TypeError):
                 raise DebBuildException(error_message)
             # Raise an error if key or value is empty.
             if not k or not v:
@@ -266,10 +243,10 @@ def _debian_binary(build_dir, **kwargs):
     """
     debian-binary contains the version.
     """
-    filename = os.path.join(build_dir, "debian-binary")
-    with open(filename, "w") as f:
-        f.write("2.0\n")
-    return filename
+    build_path = Path(build_dir)
+    filename = build_path / "debian-binary"
+    filename.write_text("2.0\n")
+    return str(filename)
 
 
 def _collect_conffiles(data_src, config_files, staging_dir):
@@ -279,7 +256,7 @@ def _collect_conffiles(data_src, config_files, staging_dir):
     """
     conffiles = set()
     for path, target in _walk(data_src=data_src, staging_dir=staging_dir):
-        if _isfile(path) and target.startswith("./etc/"):
+        if path.is_file(follow_symlinks=False) and target.startswith("./etc/"):
             conffiles.add(target[1:])  # remove leading '.' to get absolute-like path
 
     # Add user-supplied files explicitly
@@ -295,73 +272,62 @@ def _control_tar(build_dir, **kwargs):
     """
     Create control.tar.gz
     """
-    filename = os.path.join(build_dir, "control.tar.gz")
-    f = tarfile.open(filename, "w:gz", format=tarfile.GNU_FORMAT)
+    build_path = Path(build_dir)
+    filename = build_path / "control.tar.gz"
 
-    # Write control script
-    f.add(_write_control(build_dir=build_dir, **kwargs), arcname="./control", filter=_filter(mode=0o644))
+    with tarfile.open(str(filename), "w:gz", format=tarfile.GNU_FORMAT) as f:
+        # Write control script
+        f.add(_write_control(build_dir=build_dir, **kwargs), arcname="./control", filter=_filter(mode=0o644))
 
-    # Write md5sum
-    f.add(_write_control_md5sums(build_dir=build_dir, **kwargs), arcname="./md5sums", filter=_filter(mode=0o644))
+        # Write md5sum
+        f.add(_write_control_md5sums(build_dir=build_dir, **kwargs), arcname="./md5sums", filter=_filter(mode=0o644))
 
-    # Write conffiles if any
-    conffiles = _collect_conffiles(kwargs["data_src"], kwargs["config_files"] or [], kwargs["staging_dir"])
-    if conffiles:
-        conffile_path = os.path.join(build_dir, "conffiles")
-        with open(conffile_path, "w") as fconf:
-            for path in conffiles:
-                fconf.write(path + "\n")
-        f.add(conffile_path, arcname="./conffiles", filter=_filter(mode=0o644))
+        # Write conffiles if any
+        conffiles = _collect_conffiles(kwargs["data_src"], kwargs.get("config_files") or [], kwargs["staging_dir"])
+        if conffiles:
+            conffile_path = build_path / "conffiles"
+            conffile_path.write_text("\n".join(conffiles) + "\n")
+            f.add(str(conffile_path), arcname="./conffiles", filter=_filter(mode=0o644))
 
-    # Add post & pre scripts
-    for script in ["preinst", "postinst", "prerm", "postrm"]:
-        if not kwargs.get(script, None):
-            continue
-        path = kwargs[script]
-        if not _isfile(path):
-            raise DebBuildException("%s script `%s` must be a file" % (script, path))
-        f.add(path, arcname="./" + script, filter=_filter(mode=0o755))
+        # Add post & pre scripts
+        for script in ["preinst", "postinst", "prerm", "postrm"]:
+            if not kwargs.get(script):
+                continue
+            path = kwargs[script]
+            if not Path(path).is_file(follow_symlinks=False):
+                raise DebBuildException("%s script `%s` must be a file" % (script, path))
+            f.add(path, arcname="./" + script, filter=_filter(mode=0o755))
 
-    # Close archive to flush data on disk.
-    f.close()
-    return filename
+    return str(filename)
 
 
 def _write_control(build_dir, **kwargs):
     """
     Create a control file from template.
     """
-    filename = os.path.join(build_dir, "control")
-    with open(filename, "w") as c:
-        data = _template(TMPL_CONTROL, **kwargs)
-        c.write(data)
-        # Write required final newline
-        if not data.endswith("\n"):
-            c.write("\n")
-    return filename
+    build_path = Path(build_dir)
+    filename = build_path / "control"
+    data = _template(TMPL_CONTROL, **kwargs)
+    filename.write_text(data if data.endswith("\n") else data + "\n")
+    return str(filename)
 
 
 def _write_control_md5sums(build_dir, **kwargs):
     """
     Generate md5sum for all files.
     """
-    filename = os.path.join(build_dir, "md5sums")
-    first = True
-    with open(filename, "w") as f:
-        for path, target in _walk(**kwargs):
-            if _isfile(path):
-                with open(path, "rb") as input:
-                    md5_value = hashlib.md5(input.read()).hexdigest()
-                # Print newline between file only
-                if first:
-                    first = False
-                else:
-                    f.write("\n")
-                # md5hash + 2 spaces + filename without ./
-                f.write(md5_value)
-                f.write("  ")
-                f.write(target[2:])
-    return filename
+    build_path = Path(build_dir)
+    filename = build_path / "md5sums"
+    lines = []
+
+    for path, target in _walk(**kwargs):
+        if path.is_file(follow_symlinks=False):
+            md5_value = hashlib.md5(path.read_bytes()).hexdigest()
+            # md5hash + 2 spaces + filename without ./
+            lines.append(f"{md5_value}  {target[2:]}")
+
+    filename.write_text("\n".join(lines) + ("\n" if lines else ""))
+    return str(filename)
 
 
 def _write_changelog(name, staging_dir, changelog=None, **kwargs):
@@ -369,20 +335,19 @@ def _write_changelog(name, staging_dir, changelog=None, **kwargs):
     Create a changelog.gz. If a custom changelog file is provided, use its
     content instead of the auto-generated template.
     """
-    filename = os.path.join(staging_dir, f"usr/share/doc/{name}/changelog.gz")
-    os.makedirs(os.path.dirname(filename))
+    staging_path = Path(staging_dir)
+    filename = staging_path / f"usr/share/doc/{name}/changelog.gz"
+    filename.parent.mkdir(parents=True, exist_ok=True)
 
     if changelog:
-        if not _isfile(changelog):
+        if not Path(changelog).is_file(follow_symlinks=False):
             raise DebBuildException("changelog `%s` must be a file" % changelog)
         with gzip.open(filename, "w") as f:
-            with open(changelog, "rb") as src:
-                shutil.copyfileobj(src, f)
+            f.write(Path(changelog).read_bytes())
     else:
+        content = _template(TMPL_CHANGELOG, name=name, **kwargs)
         with gzip.open(filename, "w") as f:
-            f.write(_template(TMPL_CHANGELOG, name=name, **kwargs).encode("utf-8"))
-
-    return filename
+            f.write(content.encode("utf-8"))
 
 
 def _write_symlink(symlink, staging_dir, **kwargs):
@@ -390,24 +355,24 @@ def _write_symlink(symlink, staging_dir, **kwargs):
     Create the symlink in staging folder.
     """
     # Loop on symlink
-    for link, target in _as_tuple(symlink, 'expect symlink to be define as <link>=<target>'):
+    for link, target in _as_tuple(symlink, 'expect symlink to be defined as <link>=<target>'):
         # Make the path relative
-        link = os.path.join(staging_dir, link.strip('/'))
+        link = Path(staging_dir) / link.strip('/')
         # Create missing directories
-        os.makedirs(os.path.dirname(link), exist_ok=True)
+        link.parent.mkdir(parents=True, exist_ok=True)
         # Finally create the symlink.
-        os.symlink(target, link)
+        link.symlink_to(target)
 
 
 def _walk(data_src, staging_dir, **kwargs):
     """
-    Used to walk trought the data directory by listing it's content recursively.
+    Used to walk through the data directory by listing its content recursively.
     """
     # Loop on each data source
-    for prefix, data in _as_tuple(data_src, 'expect `data-src` to be define as <prefix>=<data>'):
-
+    for prefix, data in _as_tuple(data_src, 'expect `data-src` to be defined as <prefix>=<data>'):
         # Validate Path
-        if not (_isfile(data) or _isdir(data)):
+        data_path = Path(data)
+        if not (data_path.is_file(follow_symlinks=False) or data_path.is_dir(follow_symlinks=False)):
             raise DebBuildException("data-src path `%s` must be a file or directory" % data)
 
         # Make sure prefix start with dot (.)
@@ -415,25 +380,26 @@ def _walk(data_src, staging_dir, **kwargs):
             prefix = ("." if prefix.startswith("/") else "./") + prefix
 
         # Yield intermediate directories
-        for i in range(1, len(prefix.split("/"))):
-            path = data if _isdir(data) else os.path.dirname(data)
-            target = "/".join(prefix.split("/")[0:i])
+        prefix_parts = prefix.split("/")
+        for i in range(1, len(prefix_parts)):
+            path = data_path if data_path.is_dir(follow_symlinks=False) else data_path.parent
+            target = "/".join(prefix_parts[0:i])
             yield path, target
-        yield data, prefix
+        yield data_path, prefix
 
         # Loop on file and directory from data
-        if _isdir(data):
-            for root, dirs, files in os.walk(data, followlinks=False):
-                for name in files + dirs:
-                    path = os.path.join(root, name)
-                    target = os.path.join(prefix + root[len(data) :], name)
-                    yield path, target
+        if data_path.is_dir(follow_symlinks=False):
+            for path in data_path.rglob("*"):
+                relative = path.relative_to(data_path)
+                target = f"{prefix}/{relative}"
+                yield path, target
 
     # Loop on staging folder to include changelog and link.
-    for root, dirs, files in os.walk(staging_dir, followlinks=False):
-        for name in files + dirs:
-            path = os.path.join(root, name)
-            target = os.path.join("." + root[len(staging_dir) :], name)
+    staging_path = Path(staging_dir)
+    if staging_path.exists():
+        for path in staging_path.rglob("*"):
+            relative_suffix = path.relative_to(staging_path)
+            target = f"./{relative_suffix}"
             yield path, target
 
 
@@ -441,17 +407,18 @@ def _data_tar(build_dir, **kwargs):
     """
     Create data.tar.gz
     """
-    # Create archive.
-    filename = os.path.join(build_dir, "data.tar.gz")
-    with tarfile.open(filename, "w:gz", format=tarfile.GNU_FORMAT) as f:
+    build_path = Path(build_dir)
+    filename = build_path / "data.tar.gz"
+    with tarfile.open(str(filename), "w:gz", format=tarfile.GNU_FORMAT) as f:
         for path, target in _walk(**kwargs):
-            f.add(path, arcname=target, recursive=False, filter=_filter(mask=0o755))
-    return filename
+            f.add(str(path), arcname=target, recursive=False, filter=_filter(mask=0o755))
+    return str(filename)
 
 
 def _archive_deb(**kwargs):
 
-    filename = os.path.join(kwargs["build_dir"], _template(kwargs["deb"], **kwargs))
+    build_path = Path(kwargs["build_dir"])
+    filename = build_path / _template(kwargs["deb"], **kwargs)
     f = unix_ar.open(filename, "w")
     # debian-binary
     f.add(_debian_binary(**kwargs), unix_ar.ArInfo("debian-binary", gid=0, uid=0, perms=0o100644))
@@ -503,21 +470,23 @@ def debbuild(
     if source_date is None:
         source_date = datetime.datetime.now(datetime.timezone.utc)
 
-    cwd = os.getcwd()
-    if output is None:
-        output = cwd
-    # To simplify the building process, let switch to staging folder.
-    os.makedirs(build_dir, exist_ok=True)
+    cwd = Path.cwd()
+    output_path = Path(output) if output else cwd
+    build_path = Path(build_dir)
+
+    # Create build directory
+    build_path.mkdir(exist_ok=True)
 
     # Clear staging
-    staging_dir = os.path.join(build_dir, STAGING_DIR)
-    if os.path.exists(staging_dir):
-        shutil.rmtree(staging_dir)
+    staging_path = build_path / STAGING_DIR
+    if staging_path.exists():
+        shutil.rmtree(staging_path)
+    staging_path.mkdir(parents=True, exist_ok=True)
 
     # Create the debian archive
     filename = _archive_deb(
-        build_dir=build_dir,
-        staging_dir=staging_dir,
+        build_dir=str(build_path),
+        staging_dir=str(staging_path),
         name=name,
         version=version,
         deb=deb,
@@ -544,4 +513,4 @@ def debbuild(
         changelog=changelog,
     )
     # Move the archive to output folder.
-    shutil.move(filename, os.path.join(output, os.path.basename(filename)))
+    shutil.move(filename, output_path / filename.name)
