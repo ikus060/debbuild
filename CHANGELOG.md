@@ -6,6 +6,42 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 <!-- insertion marker -->
+## [0.4.0b3](https://gitlab.com/ikus-soft/debbuild/tags/0.4.0b3) - 2026-08-21
+
+<small>[Compare with 0.4.0b2](https://gitlab.com/ikus-soft/debbuild/compare/0.4.0b2...0.4.0b3)</small>
+
+### Misc
+
+- debbuild: rename changelog.gz to changelog.Debian.gz per Debian policy ([cb3dd3a](https://gitlab.com/ikus-soft/debbuild/commit/cb3dd3a66b75f10d834f4ea372cdd60e6034a115) by Patrik Dufresne).
+
+## [0.4.0b2](https://gitlab.com/ikus-soft/debbuild/tags/0.4.0b2) - 2026-08-21
+
+<small>[Compare with 0.4.0b1](https://gitlab.com/ikus-soft/debbuild/compare/0.4.0b1...0.4.0b2)</small>
+
+### Misc
+
+- ci: upload all tags to pypi ([172e11e](https://gitlab.com/ikus-soft/debbuild/commit/172e11ec86033a48fd310a5b863fa760784aee0b) by Patrik Dufresne).
+- debbuild: detect host architecture by default instead of hardcoded value ([917012a](https://gitlab.com/ikus-soft/debbuild/commit/917012a4acc1a68b4da9edb1af651f3ae47b4901) by Patrik Dufresne).
+
+## [0.4.0b1](https://gitlab.com/ikus-soft/debbuild/tags/0.4.0b1) - 2026-08-21
+
+<small>[Compare with 0.3.0](https://gitlab.com/ikus-soft/debbuild/compare/0.3.0...0.4.0b1)</small>
+
+### Added
+
+- ci: add python build matrix ([9939487](https://gitlab.com/ikus-soft/debbuild/commit/9939487fb8bcc8933b4ecf87b071067a20ee967d) by Patrik Dufresne).
+- debbuild: add copyright file generation with license support ([fb2c439](https://gitlab.com/ikus-soft/debbuild/commit/fb2c4393e7a18918f865a7a1d335de1a7aeb3a0a) by Patrik Dufresne).
+- test: add lintian test ([e035251](https://gitlab.com/ikus-soft/debbuild/commit/e035251abd1dee96baf2418d7b17b7f3da6e9cfd) by Patrik Dufresne).
+
+### Removed
+
+- debuild: remove usage of follow_symlinks ([c31bcae](https://gitlab.com/ikus-soft/debbuild/commit/c31bcaec587896089a2acca609866a835d9b76fb) by Patrik Dufresne).
+
+### Misc
+
+- debbuild: migrate os/stat usage to pathlib ([b81e33e](https://gitlab.com/ikus-soft/debbuild/commit/b81e33e7ec4f9cd97afef167fb1b19957b67cf17) by Patrik Dufresne).
+- meta: update project copyright header ([c4be422](https://gitlab.com/ikus-soft/debbuild/commit/c4be422f207e48ebb3a5b1337bf6cca598dc8c01) by Patrik Dufresne).
+
 ## [0.3.0](https://gitlab.com/ikus-soft/debbuild/tags/0.3.0) - 2026-08-20
 
 <small>[Compare with 0.2.2](https://gitlab.com/ikus-soft/debbuild/compare/0.2.2...0.3.0)</small>
